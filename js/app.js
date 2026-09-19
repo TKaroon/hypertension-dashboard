@@ -28,8 +28,10 @@ const appState = {
     kLevel: 4.2,
     uacr: null,
     tc: 210,
+    tg: 150,
     hdl: 48,
-    ldl: 134,
+    ldl: 132,
+    nonHdl: 162,
     dm: 0,
     smoking: 0,
     cad: 0,
@@ -626,14 +628,57 @@ function syncInputsToState() {
   p.uacr = uacrInp ? parseFloat(uacrInp) : null;
 
   p.tc = parseFloat(document.getElementById('inp-tc')?.value) || null;
+  p.tg = parseFloat(document.getElementById('inp-tg')?.value) != null ? parseFloat(document.getElementById('inp-tg')?.value) : null;
   p.hdl = parseFloat(document.getElementById('inp-hdl')?.value) || null;
-  p.ldl = parseFloat(document.getElementById('inp-ldl')?.value) || null;
+
+  if (p.tc && p.hdl && p.tg != null && window.calcEffectiveLdl) {
+    p.nonHdl = Math.max(0, Math.round((p.tc - p.hdl) * 10) / 10);
+    p.ldlFriedewald = Math.round(window.calcFriedewald(p.tc, p.hdl, p.tg) * 10) / 10;
+    p.ldlSampson = Math.round(window.calcSampson(p.tc, p.hdl, p.tg) * 10) / 10;
+    p.ldlModSampson = Math.round(window.calcModifiedSampson(p.tc, p.hdl, p.tg) * 10) / 10;
+    p.ldl = Math.max(0, Math.round(window.calcEffectiveLdl(p.tc, p.hdl, p.tg) * 10) / 10);
+  } else {
+    p.nonHdl = (p.tc && p.hdl) ? Math.max(0, p.tc - p.hdl) : null;
+    p.ldl = parseFloat(document.getElementById('inp-ldl')?.value) || null;
+  }
 }
 
 // --- Core Recalculation Engine ---
 function recalculateAll() {
   syncInputsToState();
   const p = appState.patient;
+
+  // 0. Lipid Calculations Live Badge Sync
+  const lblLdl = document.getElementById('lbl-ldl-val');
+  const lblLdlMethod = document.getElementById('lbl-ldl-method');
+  const lblNonHdl = document.getElementById('lbl-non-hdl-val');
+  const lblFriedewald = document.getElementById('lbl-friedewald-val');
+  const badgeTgWarn = document.getElementById('badge-tg-warning');
+
+  if (p.ldl != null) {
+    if (lblLdl) lblLdl.innerText = p.ldl.toFixed(1);
+    if (lblNonHdl) lblNonHdl.innerText = (p.nonHdl != null) ? p.nonHdl.toFixed(1) : '-';
+    if (lblFriedewald) {
+      lblFriedewald.innerText = (p.tg > 400) ? 'ไม่แนะนำ (TG > 400)' : `${p.ldlFriedewald != null ? p.ldlFriedewald.toFixed(1) : '-'} mg/dL`;
+    }
+    if (lblLdlMethod) {
+      if (p.tg <= 400) {
+        lblLdlMethod.innerText = '(Modified Sampson / NIH Eq. 2)';
+      } else if (p.tg <= 800) {
+        lblLdlMethod.innerText = '(Modified Sampson - Extended)';
+      } else {
+        lblLdlMethod.innerText = '(Friedewald Fallback)';
+      }
+    }
+    if (badgeTgWarn) {
+      badgeTgWarn.style.display = (p.tg >= 500) ? 'block' : 'none';
+    }
+  } else {
+    if (lblLdl) lblLdl.innerText = '-';
+    if (lblNonHdl) lblNonHdl.innerText = '-';
+    if (lblFriedewald) lblFriedewald.innerText = '-';
+    if (badgeTgWarn) badgeTgWarn.style.display = 'none';
+  }
 
   // 1. BMI Calculation
   const bmiRes = window.calculateBmi(p.weight, p.height);
@@ -949,14 +994,14 @@ function loadPreset(presetKey) {
     case 'normal':
       p.age = 32; setSex(1);
       p.sbp = 116; p.dbp = 74; p.hr = 70;
-      p.scr = 0.9; p.kLevel = 4.1; p.tc = 185; p.hdl = 52; p.ldl = 110;
+      p.scr = 0.9; p.kLevel = 4.1; p.tc = 185; p.tg = 110; p.hdl = 52;
       setCurrentMedStatus('naive');
       break;
 
     case 'bpatrisk':
       p.age = 44; setSex(1);
       p.sbp = 134; p.dbp = 86; p.hr = 76;
-      p.scr = 1.0; p.kLevel = 4.3; p.tc = 220; p.hdl = 45; p.ldl = 142;
+      p.scr = 1.0; p.kLevel = 4.3; p.tc = 220; p.tg = 165; p.hdl = 45;
       document.getElementById('chk-smoke').checked = true;
       toggleCondition('smoke', true);
       setCurrentMedStatus('naive');
@@ -965,14 +1010,14 @@ function loadPreset(presetKey) {
     case 'stage1':
       p.age = 50; setSex(1);
       p.sbp = 148; p.dbp = 92; p.hr = 78;
-      p.scr = 1.0; p.kLevel = 4.2; p.tc = 215; p.hdl = 46; p.ldl = 138;
+      p.scr = 1.0; p.kLevel = 4.2; p.tc = 215; p.tg = 155; p.hdl = 46;
       setCurrentMedStatus('naive');
       break;
 
     case 'elderly':
       p.age = 76; setSex(0);
       p.sbp = 164; p.dbp = 82; p.hr = 72; // ISH
-      p.scr = 1.1; p.kLevel = 4.4; p.tc = 195; p.hdl = 55; p.ldl = 115;
+      p.scr = 1.1; p.kLevel = 4.4; p.tc = 195; p.tg = 125; p.hdl = 55;
       document.getElementById('chk-frailty').checked = true;
       toggleCondition('frailty', true);
       setCurrentMedStatus('naive');
@@ -981,7 +1026,7 @@ function loadPreset(presetKey) {
     case 'dm_ckd':
       p.age = 58; setSex(0);
       p.sbp = 144; p.dbp = 88; p.hr = 80;
-      p.scr = 1.4; p.kLevel = 4.6; p.tc = 210; p.hdl = 40; p.ldl = 130;
+      p.scr = 1.4; p.kLevel = 4.6; p.tc = 210; p.tg = 200; p.hdl = 40;
       document.getElementById('inp-uacr').value = 180;
       document.getElementById('chk-dm').checked = true;
       toggleCondition('dm', true);
@@ -991,7 +1036,7 @@ function loadPreset(presetKey) {
     case 'cad_hf':
       p.age = 63; setSex(1);
       p.sbp = 138; p.dbp = 84; p.hr = 84;
-      p.scr = 1.2; p.kLevel = 4.3; p.tc = 175; p.hdl = 38; p.ldl = 95;
+      p.scr = 1.2; p.kLevel = 4.3; p.tc = 175; p.tg = 210; p.hdl = 38;
       document.getElementById('chk-cad').checked = true;
       toggleCondition('cad', true);
       document.getElementById('chk-hf').checked = true;
@@ -1002,7 +1047,7 @@ function loadPreset(presetKey) {
     case 'resistant':
       p.age = 60; setSex(1);
       p.sbp = 154; p.dbp = 96; p.hr = 80;
-      p.scr = 1.1; p.kLevel = 4.3; p.tc = 205; p.hdl = 44; p.ldl = 128;
+      p.scr = 1.1; p.kLevel = 4.3; p.tc = 205; p.tg = 165; p.hdl = 44;
       applyPresetMed('triple_full');
       break;
 
@@ -1012,7 +1057,7 @@ function loadPreset(presetKey) {
       p.homeSbp = 124; p.homeDbp = 76; // Normal at home
       document.getElementById('inp-home-sbp').value = 124;
       document.getElementById('inp-home-dbp').value = 76;
-      p.scr = 0.95; p.kLevel = 4.2; p.tc = 200; p.hdl = 50; p.ldl = 125;
+      p.scr = 0.95; p.kLevel = 4.2; p.tc = 200; p.tg = 125; p.hdl = 50;
       setCurrentMedStatus('naive');
       break;
   }
@@ -1025,9 +1070,14 @@ function loadPreset(presetKey) {
   document.getElementById('inp-scr').value = p.scr || 1.0;
   document.getElementById('inp-k').value = p.kLevel || 4.2;
   document.getElementById('inp-tc').value = p.tc || 200;
+  if (document.getElementById('inp-tg')) document.getElementById('inp-tg').value = p.tg || 150;
   document.getElementById('inp-hdl').value = p.hdl || 50;
-  document.getElementById('inp-ldl').value = p.ldl || 120;
+  if (document.getElementById('inp-ldl')) document.getElementById('inp-ldl').value = p.ldl || 120;
 
+  recalculateAll();
+}
+
+function updateLipidCalculations() {
   recalculateAll();
 }
 if (typeof window !== 'undefined') {
@@ -1181,12 +1231,19 @@ function syncPrintSheets() {
   if (prsUacr) prsUacr.innerText = (p.uacr != null && !isNaN(p.uacr)) ? `${p.uacr}` : '-';
 
   const prsTc = document.getElementById('prs-tc');
-  if (prsTc) prsTc.innerText = (p.tc != null && !isNaN(p.tc)) ? `${p.tc}` : '-';
+  if (prsTc) prsTc.innerText = (p.tc != null && !isNaN(p.tc)) ? `${p.tc} mg/dL` : '-';
+
+  const prsTcTg = document.getElementById('prs-tc-tg');
+  if (prsTcTg) {
+    const tcStr = (p.tc != null && !isNaN(p.tc)) ? `${p.tc}` : '-';
+    const tgStr = (p.tg != null && !isNaN(p.tg)) ? `${p.tg}` : '-';
+    prsTcTg.innerText = `${tcStr} / ${tgStr}`;
+  }
 
   const prsLipids = document.getElementById('prs-lipids');
   if (prsLipids) {
     const hdlStr = (p.hdl != null && !isNaN(p.hdl)) ? `${p.hdl}` : '-';
-    const ldlStr = (p.ldl != null && !isNaN(p.ldl)) ? `${p.ldl}` : '-';
+    const ldlStr = (p.ldl != null && !isNaN(p.ldl)) ? `${p.ldl.toFixed(1)}` : '-';
     prsLipids.innerText = `${hdlStr} / ${ldlStr}`;
   }
 
@@ -1555,6 +1612,7 @@ if (typeof window !== 'undefined') {
   window.closePrintPreviewModal = closePrintPreviewModal;
   window.executePrintFromModal = executePrintFromModal;
   window.handlePrintModalBackdrop = handlePrintModalBackdrop;
+  window.updateLipidCalculations = updateLipidCalculations;
 }
 
 // --- Event Listeners Initialization ---

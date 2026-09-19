@@ -42,10 +42,10 @@ function generateEMRNote(patient, stagingThai, stagingESC, stagingACC, outOfOffi
   if (egfr) labItems.push(`eGFR (CKD-EPI 2021): ${egfr} mL/min/1.73m²`);
   if (kLevel) labItems.push(`K+: ${kLevel} mEq/L`);
   if (uacr) labItems.push(`UACR: ${uacr} mg/g`);
-  if (tc) labItems.push(`TC: ${tc}`);
-  if (ldl) labItems.push(`LDL: ${ldl}`);
-  if (hdl) labItems.push(`HDL: ${hdl}`);
-  if (tg) labItems.push(`TG: ${tg}`);
+  if (tc) labItems.push(`TC: ${tc} mg/dL`);
+  if (tg) labItems.push(`TG: ${tg} mg/dL`);
+  if (hdl) labItems.push(`HDL: ${hdl} mg/dL`);
+  if (ldl) labItems.push(`LDL (Calc): ${typeof ldl === 'number' ? ldl.toFixed(1) : ldl} mg/dL`);
   if (labItems.length > 0) {
     objective += `\n- Labs: ${labItems.join(' | ')}`;
   }

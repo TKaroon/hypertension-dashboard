@@ -236,27 +236,48 @@
             </div>
 
             <!-- Lipid Profile -->
-            <div class="form-row">
+            <div class="form-grid-3">
               <div class="form-group">
                 <label class="form-label" for="inp-tc">Total Cholesterol</label>
                 <div class="input-wrapper">
-                  <input type="number" id="inp-tc" class="form-control" value="210" min="80" max="600">
+                  <input type="number" id="inp-tc" class="form-control" value="210" min="80" max="600" oninput="updateLipidCalculations()">
+                  <span class="input-unit">mg/dL</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="inp-tg">Triglyceride</label>
+                <div class="input-wrapper">
+                  <input type="number" id="inp-tg" class="form-control" value="150" min="20" max="2500" oninput="updateLipidCalculations()">
                   <span class="input-unit">mg/dL</span>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label" for="inp-hdl">HDL-C</label>
                 <div class="input-wrapper">
-                  <input type="number" id="inp-hdl" class="form-control" value="48" min="15" max="150">
+                  <input type="number" id="inp-hdl" class="form-control" value="48" min="15" max="150" oninput="updateLipidCalculations()">
                   <span class="input-unit">mg/dL</span>
                 </div>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="inp-ldl">LDL-C</label>
-                <div class="input-wrapper">
-                  <input type="number" id="inp-ldl" class="form-control" value="134" min="20" max="400">
-                  <span class="input-unit">mg/dL</span>
+            </div>
+
+            <!-- Auto-Calculated LDL-C & Non-HDL-C Live Badge (Lipid Calculator Engine) -->
+            <div class="lipid-calc-badge-box" id="lipid-calc-badge-box" style="margin-top:10px; padding:8px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--radius-sm); font-size:0.84rem; color:#166534; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px;">
+                <div>
+                  <strong>LDL-C (คำนวณอัตโนมัติ):</strong> 
+                  <span id="lbl-ldl-val" style="font-size:0.95rem; font-weight:800; color:#15803d;">132.0</span> mg/dL
+                  <span id="lbl-ldl-method" style="font-size:0.75rem; color:#4b5563;">(Modified Sampson / NIH Eq. 2)</span>
                 </div>
+                <div style="border-left:1px solid #86efac; padding-left:10px;">
+                  <strong>Non-HDL-C:</strong> 
+                  <span id="lbl-non-hdl-val" style="font-weight:700; color:#1e40af;">162.0</span> mg/dL
+                </div>
+                <div style="border-left:1px solid #86efac; padding-left:10px; font-size:0.78rem; color:#4b5563;">
+                  Friedewald: <span id="lbl-friedewald-val">132.0</span> mg/dL
+                </div>
+              </div>
+              <div id="badge-tg-warning" style="display:none; font-size:0.75rem; font-weight:700; color:#dc2626; background:#fee2e2; border:1px solid #fca5a5; padding:2px 8px; border-radius:4px;">
+                ⚠️ TG ≥ 500 mg/dL (เสี่ยงต่อตับอ่อนอักเสบเฉียบพลัน แนะนำดู Non-HDL-C)
               </div>
             </div>
           </div>
@@ -796,7 +817,7 @@
         <div><strong>eGFR:</strong> <span id="prs-egfr" style="font-weight:700;">-</span></div>
         <div><strong>K+:</strong> <span id="prs-k">-</span> mEq/L</div>
         <div><strong>UACR:</strong> <span id="prs-uacr">-</span> mg/g</div>
-        <div><strong>TC:</strong> <span id="prs-tc">-</span> mg/dL</div>
+        <div><strong>TC/TG:</strong> <span id="prs-tc-tg">-</span><span id="prs-tc" style="display:none;">-</span></div>
         <div><strong>HDL/LDL:</strong> <span id="prs-lipids">-</span></div>
       </div>
       <div id="prs-comorbid-row" style="font-size:7pt; color:#334155; margin-top:3px; padding:2px 6px; background:#f1f5f9; border-radius:4px;">

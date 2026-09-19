@@ -262,6 +262,107 @@ function calculateBmi(weightKg, heightCm) {
   return { bmi, category, badgeClass };
 }
 
+// --- 6. Complete Lipid Profile & Multi-Formula LDL-C Calculators ---
+// Derived from lipid-ascvd-dashboard.pages.dev (นพ.ธนภพ การุญ)
+const martinTableData = [
+  [3.5, 3.4, 3.3, 3.3, 3.2, 3.1],
+  [4.0, 3.9, 3.7, 3.6, 3.6, 3.4],
+  [4.3, 4.1, 4.0, 3.9, 3.8, 3.6],
+  [4.5, 4.3, 4.1, 4.0, 3.9, 3.9],
+  [4.7, 4.4, 4.3, 4.2, 4.1, 3.9],
+  [4.8, 4.6, 4.4, 4.2, 4.2, 4.1],
+  [4.9, 4.6, 4.5, 4.3, 4.3, 4.2],
+  [5.0, 4.8, 4.6, 4.4, 4.3, 4.2],
+  [5.1, 4.8, 4.6, 4.5, 4.4, 4.3],
+  [5.2, 4.9, 4.7, 4.6, 4.4, 4.3],
+  [5.3, 5.0, 4.8, 4.7, 4.5, 4.4],
+  [5.4, 5.1, 4.8, 4.7, 4.5, 4.3],
+  [5.5, 5.2, 5.0, 4.7, 4.6, 4.5],
+  [5.6, 5.3, 5.0, 4.8, 4.6, 4.5],
+  [5.7, 5.4, 5.1, 4.9, 4.7, 4.5],
+  [5.8, 5.5, 5.2, 5.0, 4.8, 4.6],
+  [6.0, 5.5, 5.3, 5.0, 4.8, 4.6],
+  [6.1, 5.7, 5.3, 5.1, 4.9, 4.7],
+  [6.2, 5.8, 5.4, 5.2, 5.0, 4.7],
+  [6.3, 5.9, 5.6, 5.3, 5.0, 4.8],
+  [6.5, 6.0, 5.7, 5.4, 5.1, 4.8],
+  [6.7, 6.2, 5.8, 5.4, 5.2, 4.9],
+  [6.8, 6.3, 5.9, 5.5, 5.3, 5.0],
+  [7.0, 6.5, 6.0, 5.7, 5.4, 5.1],
+  [7.3, 6.7, 6.2, 5.8, 5.5, 5.2],
+  [7.6, 6.9, 6.4, 6.0, 5.6, 5.3],
+  [8.0, 7.2, 6.6, 6.2, 5.9, 5.4],
+  [8.5, 7.6, 7.0, 6.5, 6.1, 5.6]
+];
+
+const martinTgIndex = [
+  [7, 49], [50, 56], [57, 61], [62, 66], [67, 71], [72, 75], [76, 79], 
+  [80, 83], [84, 87], [88, 92], [93, 96], [97, 100], [101, 105], [106, 110], 
+  [111, 115], [116, 120], [121, 126], [127, 132], [133, 138], [139, 146], 
+  [147, 154], [155, 163], [164, 173], [174, 185], [186, 201], [202, 220], 
+  [221, 247], [248, 13975]
+];
+
+function getMartinHopkinsFactor(tg, nonHdl) {
+  if (nonHdl <= 0) return 5.0;
+  const tgVal = Math.max(7, Math.min(tg, 400));
+  const nonHdlVal = Math.max(50, Math.min(nonHdl, 220));
+  let r = 0;
+  for (let i = 0; i < martinTgIndex.length; i++) {
+    if (tgVal >= martinTgIndex[i][0] && tgVal <= martinTgIndex[i][1]) {
+      r = i;
+      break;
+    }
+  }
+  let c = 0;
+  if (nonHdlVal < 100) c = 0;
+  else if (nonHdlVal < 130) c = 1;
+  else if (nonHdlVal < 160) c = 2;
+  else if (nonHdlVal < 190) c = 3;
+  else if (nonHdlVal < 220) c = 4;
+  else c = 5;
+  return martinTableData[r][c];
+}
+
+function calcFriedewald(tc, hdl, tg) {
+  if (!tc || !hdl || tg == null) return 0;
+  return tc - hdl - (tg / 5);
+}
+
+function calcMartin(tc, hdl, tg) {
+  const nonHdl = tc - hdl;
+  if (tg <= 0 || nonHdl <= 0) return 0;
+  const factor = getMartinHopkinsFactor(tg, nonHdl);
+  return tc - hdl - (tg / factor);
+}
+
+function calcSampson(tc, hdl, tg) {
+  const nonHdl = tc - hdl;
+  if (tg <= 0 || nonHdl <= 0) return 0;
+  return (tc / 0.948) - (hdl / 0.971) - ((tg / 8.56) + ((tg * nonHdl) / 2140) - (Math.pow(tg, 2) / 16100)) - 9.44;
+}
+
+function calcModifiedSampson(tc, hdl, tg) {
+  const nonHdl = tc - hdl;
+  if (tg <= 0 || nonHdl <= 0) return 0;
+  return nonHdl - (tg / 8.37) - ((tg * nonHdl) / 2640) + (Math.pow(tg, 2) / 17400);
+}
+
+function calcEffectiveLdl(tc, hdl, tg) {
+  if (!tc || !hdl || tg == null) return 0;
+  const nonHdl = tc - hdl;
+  if (nonHdl <= 0) return 0;
+  const modSampson = calcModifiedSampson(tc, hdl, tg);
+  const sampson = calcSampson(tc, hdl, tg);
+  const martin = calcMartin(tc, hdl, tg);
+  const friedewald = calcFriedewald(tc, hdl, tg);
+
+  if (modSampson > 0 && tg <= 800) return modSampson;
+  if (sampson > 0 && tg <= 800) return sampson;
+  if (martin > 0) return martin;
+  return Math.max(0, friedewald);
+}
+
 // Export functions to window
 window.calcCKDEPI2021 = calcCKDEPI2021;
 window.getCkdStage = getCkdStage;
@@ -269,3 +370,9 @@ window.calculateThaiRisk = calculateThaiRisk;
 window.calculatePreventApiFull = calculatePreventApiFull;
 window.calcSCORE2 = calcSCORE2;
 window.calculateBmi = calculateBmi;
+window.getMartinHopkinsFactor = getMartinHopkinsFactor;
+window.calcFriedewald = calcFriedewald;
+window.calcMartin = calcMartin;
+window.calcSampson = calcSampson;
+window.calcModifiedSampson = calcModifiedSampson;
+window.calcEffectiveLdl = calcEffectiveLdl;

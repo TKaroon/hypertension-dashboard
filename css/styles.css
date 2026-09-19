@@ -1632,6 +1632,14 @@ select.form-control {
   }
 
   /* 15. Disclaimer & References Cards */
+  .lipid-calc-badge-box {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 8px 10px !important;
+    font-size: 0.80rem !important;
+  }
+
   .disclaimer-section {
     border-radius: 12px !important;
     padding: 14px 12px !important;
