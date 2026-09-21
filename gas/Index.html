@@ -2245,6 +2245,431 @@ select.form-control {
   text-align: left !important;
 }
 
+/* =========================================================================
+   LAB & DOCUMENT IMPORT MODAL (AI Multimodal & Client-side PDF Parser)
+   ========================================================================= */
+#lab-import-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.75);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(6px);
+  padding: 16px;
+  box-sizing: border-box;
+}
+.lab-import-card {
+  background: #f8fafc;
+  border-radius: var(--radius-lg, 12px);
+  width: 96%;
+  max-width: 960px;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+  border: 1px solid #cbd5e1;
+  overflow: hidden;
+  animation: popupSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lab-import-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #3730a3 0%, #4f46e5 50%, #7c3aed 100%);
+  color: #ffffff;
+  padding: 12px 18px;
+  flex-shrink: 0;
+}
+.lab-import-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lab-engine-bar {
+  display: flex;
+  gap: 8px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+}
+.lab-engine-btn {
+  flex: 1;
+  min-width: 220px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.lab-engine-btn.active {
+  background: #ffffff;
+  color: #4338ca;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  border: 1px solid #c7d2fe;
+}
+.lab-api-box {
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+}
+.lab-dropzone {
+  border: 2px dashed #818cf8;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 22px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.lab-dropzone:hover, .lab-dropzone.dragover {
+  background: #eff6ff;
+  border-color: #4f46e5;
+  transform: scale(1.003);
+}
+.lab-upload-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+.lab-upload-btn {
+  background: #4f46e5;
+  color: #ffffff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+  font-family: inherit;
+}
+.lab-upload-btn:hover {
+  background: #4338ca;
+}
+.lab-upload-btn-secondary {
+  background: #ffffff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+}
+.lab-upload-btn-secondary:hover {
+  background: #f5f3ff;
+}
+.lab-loading-state {
+  display: none;
+  text-align: center;
+  padding: 28px 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+.lab-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e7ff;
+  border-top: 4px solid #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+.lab-review-container {
+  display: flex;
+  gap: 16px;
+  flex-direction: row;
+}
+@media (max-width: 820px) {
+  .lab-review-container {
+    flex-direction: column;
+  }
+}
+.lab-preview-pane {
+  flex: 0 0 270px;
+  background: #0f172a;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid #334155;
+}
+.lab-preview-img {
+  max-width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #1e293b;
+}
+.lab-preview-canvas {
+  max-width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #ffffff;
+}
+.lab-data-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lab-section-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1.5px solid #e2e8f0;
+  padding-bottom: 4px;
+}
+.lab-field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+.lab-field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.lab-field-item label {
+  font-size: 0.71rem;
+  font-weight: 700;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lab-field-item input, .lab-field-item select {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: #ffffff;
+  box-sizing: border-box;
+  width: 100%;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.lab-field-item input.detected-highlight, .lab-field-item select.detected-highlight {
+  border: 1.5px solid #10b981 !important;
+  background: #f0fdf4 !important;
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+.lab-detected-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #059669;
+  background: #d1fae5;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+.lab-import-footer {
+  padding: 12px 20px;
+  background: #f1f5f9;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.lab-btn-apply {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #ffffff;
+  border: none;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 0.86rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 3px 10px rgba(79, 70, 229, 0.3);
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.lab-btn-apply:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+  transform: translateY(-1px);
+}
+/* Multi-Image & PDPA Styles */
+.lab-pdpa-banner {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.08);
+}
+.lab-multi-queue {
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lab-thumbnail-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 8px 2px;
+  scrollbar-width: thin;
+}
+.lab-thumb-card {
+  position: relative;
+  flex: 0 0 86px;
+  width: 86px;
+  height: 108px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  transition: all 0.2s;
+}
+.lab-thumb-card:hover {
+  border-color: #6366f1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.2);
+}
+.lab-thumb-card img {
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+  background: #f1f5f9;
+}
+.lab-thumb-meta {
+  width: 100%;
+  padding: 2px 4px;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #334155;
+  background: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-top: 1px solid #e2e8f0;
+  line-height: 1.4;
+}
+.lab-thumb-del {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  background: rgba(239, 68, 68, 0.92);
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: background 0.15s;
+}
+.lab-thumb-del:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+.lab-thumb-index {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #ffffff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.lab-preview-chips {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.lab-preview-chip {
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.lab-preview-chip.active {
+  background: #4f46e5;
+  color: #ffffff;
+  border-color: #6366f1;
+}
+
 /* ==========================================================================
    Strict A4 Print Styles (@media print) - 2 Pages Formatted
    ========================================================================== */
@@ -2360,6 +2785,13 @@ select.form-control {
 }
 
 </style>
+  <!-- PDF.js library for offline client-side PDF laboratory report parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
 </head>
 <body>
 
@@ -2389,6 +2821,10 @@ select.form-control {
             <span>👥 โหมดประชาชน / ผู้ป่วย</span>
           </button>
         </div>
+
+        <button type="button" class="btn-header" id="btn-open-lab-import" onclick="openLabImportModal()" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; border: none; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.28);" title="นำเข้าข้อมูลจากภาพถ่ายสลิปแล็บ หรือไฟล์ PDF แล้วคำนวณผลอัตโนมัติ">
+          <span>📷 / 📄 นำเข้าผลตรวจ (AI &amp; PDF)</span>
+        </button>
 
         <button type="button" class="btn-header" id="btn-open-summary-modal" onclick="openPrintPreviewModal()">
           <span>📋 แสดงผลสรุปข้อมูล</span>
@@ -2556,8 +2992,11 @@ select.form-control {
 
           <!-- 3. Laboratory Data -->
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
               <h3 class="card-title"><span>🧪</span> 3. ผลตรวจทางห้องปฏิบัติการ (Labs)</h3>
+              <button type="button" onclick="openLabImportModal()" style="background:#ede9fe; color:#6d28d9; border:1px solid #c4b5fd; font-size:0.74rem; font-weight:700; padding:4px 10px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s;" title="สแกนผลแล็บจากสลิปภาพถ่ายหรือเอกสาร PDF">
+                <span>📷</span> สแกนสลิปแล็บ / PDF
+              </button>
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -3056,6 +3495,373 @@ select.form-control {
     </div>
 
   </main>
+
+  <!-- =========================================================================
+       MODAL: LAB & DOCUMENT IMPORT (AI Multimodal & Client-Side PDF Parser)
+       ========================================================================= -->
+  <div class="modal-overlay" id="lab-import-modal" onclick="handleLabImportBackdropClick(event)">
+    <div class="lab-import-card">
+      <!-- Header -->
+      <div class="lab-import-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.35rem; line-height: 1;">📷</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em;">
+              นำเข้าข้อมูลผลตรวจจากภาพถ่าย / สลิปแล็บ / เอกสาร PDF (Smart Lab Import)
+            </h3>
+            <div style="font-size: 0.72rem; color: #e0e7ff; font-weight: 500;">
+              สกัดค่าตัวแปรทางคลินิก ความดัน และผลเลือดอัตโนมัติด้วย AI Multimodal หรืออ่าน PDF ในเครื่องโดยตรง
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-summary-close" onclick="closeLabImportModal()" title="ปิดหน้าต่าง">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div class="lab-import-body">
+        <!-- PDPA Protection Guarantee Banner -->
+        <div class="lab-pdpa-banner" id="lab-pdpa-banner">
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <span style="font-size: 1.35rem; line-height: 1.2;">🛡️</span>
+            <div>
+              <div style="font-size: 0.82rem; font-weight: 800; color: #065f46; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span>มาตรการคุ้มครองข้อมูลส่วนบุคคล (PDPA Protection Guarantee)</span>
+                <span style="background: #059669; color: #ffffff; font-size: 0.63rem; padding: 1px 7px; border-radius: 9999px; font-weight: 700;">Zero Persistent Storage</span>
+                <span style="background: #10b981; color: #ffffff; font-size: 0.63rem; padding: 1px 7px; border-radius: 9999px; font-weight: 700;">In-Memory Only</span>
+              </div>
+              <div style="font-size: 0.72rem; color: #047857; margin-top: 3px; line-height: 1.4;">
+                • ไม่มีการบันทึกภาพถ่ายสลิปแล็บ หรือข้อมูลอัตลักษณ์ (ชื่อ-สกุล / HN / เลขบัตรประชาชน) ลงใน LocalStorage หรือหน่วยความจำถาวรใดๆ<br>
+                • ไฟล์ภาพจะคงอยู่เฉพาะใน RAM ชั่วคราวของเบราว์เซอร์ และถูกทำลายทิ้งทันทีเมื่อปิดหน้าต่าง นำเข้าข้อมูล หรือกดปุ่มรีเซ็ต
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="purgeLabMemory(true)" title="ล้างรูปภาพและหน่วยความจำชั่วคราวทั้งหมดทันที" style="background: #ffffff; border: 1.5px solid #6ee7b7; color: #065f46; border-radius: 7px; padding: 5px 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <span>🗑️</span> ล้างข้อมูลใน RAM
+          </button>
+        </div>
+
+        <!-- 1. Engine Selector Bar -->
+        <div class="lab-engine-bar">
+          <button type="button" class="lab-engine-btn active" id="btn-engine-gemini" onclick="switchLabEngine('gemini')">
+            <span>✨</span>
+            <span><strong>Gemini AI Multimodal</strong> (แนะนำ - รองรับภาพถ่ายสลิป/กระดาษ/PDF รวมสูงสุด 10 รูป)</span>
+          </button>
+          <button type="button" class="lab-engine-btn" id="btn-engine-pdfjs" onclick="switchLabEngine('pdfjs')">
+            <span>⚡</span>
+            <span><strong>Local PDF Text Parser</strong> (ออฟไลน์ในเครื่อง 100% สำหรับไฟล์ PDF)</span>
+          </button>
+        </div>
+
+        <!-- 2. Gemini API Key Configuration Box (Visible when Gemini Engine selected) -->
+        <div id="lab-gemini-config-box" class="lab-api-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <span style="font-weight: 700; color: #4338ca;">🔑 Google Gemini API Key:</span>
+              <span id="gemini-key-status" style="font-size: 0.74rem; font-weight: 600; margin-left: 6px; color: #b45309;">(ยังไม่ได้บันทึก Key)</span>
+            </div>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #4f46e5; font-weight: 700; text-decoration: underline; font-size: 0.76rem;">
+              รับ Gemini API Key ฟรีจาก Google AI Studio ↗
+            </a>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 6px; align-items: center;">
+            <input type="password" id="gemini-api-key-input" placeholder="วาง API Key ของคุณที่นี่ (เช่น AIzaSy...)" style="flex: 1; padding: 6px 10px; border: 1px solid #c7d2fe; border-radius: 6px; font-size: 0.8rem; font-family: monospace;">
+            <button type="button" onclick="toggleApiKeyVisibility()" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; cursor: pointer;" title="แสดง/ซ่อน Key">👁️</button>
+            <button type="button" onclick="saveGeminiApiKey()" style="background: #4f46e5; color: #ffffff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">บันทึก Key</button>
+          </div>
+          <div style="font-size: 0.7rem; color: #64748b; margin-top: 4px;">
+            🔒 Key จะถูกบันทึกอย่างปลอดภัยใน <em>localStorage</em> ของบราวเซอร์เครื่องนี้เท่านั้น ไม่มีการส่งหรือบันทึกลงเซิร์ฟเวอร์ภายนอกใดๆ
+          </div>
+        </div>
+
+        <!-- 3. Drag & Drop Upload Zone -->
+        <div class="lab-dropzone" id="lab-dropzone" onclick="triggerFileSelect()">
+          <input type="file" id="lab-file-input" accept="image/jpeg,image/png,image/webp,image/bmp,application/pdf" multiple style="display: none;" onchange="handleFileInputChange(event)">
+          <input type="file" id="lab-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handleFileInputChange(event)">
+          
+          <div style="font-size: 2.2rem; line-height: 1;">📄 / 📸</div>
+          <div style="font-size: 0.95rem; font-weight: 800; color: #1e3a8a;">
+            ลากไฟล์ภาพสลิป หรือไฟล์เอกสาร PDF มาวางที่นี่ (รองรับสูงสุด 10 รูป)
+          </div>
+          <div style="font-size: 0.78rem; color: #64748b;">
+            สามารถเลือกหรือทยอยเพิ่มได้สูงสุด 10 ภาพ เช่น สลิปความดัน + สลิปค่าไต + สลิปผลไขมัน
+          </div>
+          <div class="lab-upload-actions" onclick="event.stopPropagation()">
+            <button type="button" class="lab-upload-btn" onclick="triggerFileSelect()">
+              <span>📁</span> เลือกไฟล์จากเครื่อง (สูงสุด 10 รูป)
+            </button>
+            <button type="button" class="lab-upload-btn-secondary" onclick="triggerCameraCapture()">
+              <span>📸</span> ถ่ายภาพด้วยกล้อง
+            </button>
+          </div>
+          <div style="font-size: 0.74rem; color: #4338ca; background: #eef2ff; padding: 4px 10px; border-radius: 6px; border: 1px dashed #c7d2fe; margin-top: 4px;">
+            💡 <strong>Tip สะดวกพิเศษ:</strong> สามารถกด <strong>Ctrl+V</strong> หรือ <strong>Cmd+V</strong> เพื่อวางภาพจาก Clipboard ต่อเนื่องได้สูงสุด 10 ภาพ!
+          </div>
+        </div>
+
+        <!-- Multi-Image Queue & Thumbnail Strip (Up to 10 Images) -->
+        <div id="lab-multi-queue" class="lab-multi-queue" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 0.84rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+              <span>📸 รายการรูปภาพในคิว:</span>
+              <span id="lab-queue-count-badge" style="background: #4f46e5; color: #ffffff; padding: 2px 10px; border-radius: 9999px; font-size: 0.74rem; font-weight: 800;">0 / 10 รูป</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" onclick="triggerFileSelect()" style="background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; border-radius: 6px; padding: 4px 10px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <span>+</span> เพิ่มภาพอีก
+              </button>
+              <button type="button" onclick="clearAllLabFiles()" style="background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 6px; padding: 4px 10px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <span>🗑️</span> ล้างคิวภาพ
+              </button>
+            </div>
+          </div>
+
+          <!-- Thumbnail Strip -->
+          <div id="lab-thumbnail-strip" class="lab-thumbnail-strip"></div>
+
+          <!-- Batch Action Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
+            <div style="font-size: 0.72rem; color: #475569; display: flex; align-items: center; gap: 5px;">
+              <span>💡</span> <span>AI Multimodal จะอ่านและผสานตัวแปรทางคลินิกจากทุกสลิปเป็นโปรไฟล์ผู้ป่วยรายเดียว</span>
+            </div>
+            <button type="button" id="btn-start-batch-analysis" onclick="startBatchAnalysis()" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: #ffffff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 0.84rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 8px rgba(79, 70, 229, 0.35);">
+              <span>✨</span> วิเคราะห์และประเมินผลรวม (<span id="btn-analysis-count">0</span> รูป)
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Loading / Processing State -->
+        <div id="lab-loading-state" class="lab-loading-state">
+          <div class="lab-spinner"></div>
+          <div id="lab-loading-title" style="font-weight: 800; color: #3730a3; font-size: 0.95rem;">
+            กำลังประมวลผลเอกสาร...
+          </div>
+          <div id="lab-loading-desc" style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">
+            ระบบกำลังอ่านผลตรวจทางห้องปฏิบัติการและวิเคราะห์ตัวแปรทางคลินิก กรุณารอสักครู่...
+          </div>
+        </div>
+
+        <!-- 5. Review & Verification Area (Visible after extraction) -->
+        <div id="lab-review-area" style="display: none; flex-direction: column; gap: 14px;">
+          <!-- PDPA Anonymize Switch & Reset Bar -->
+          <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: #3730a3; display: flex; align-items: center; gap: 6px;">
+              <span>🎯 ตรวจสอบและยืนยันข้อมูลเพื่อนำเข้าสู่ Dashboard:</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label style="cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 700; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 10px; border-radius: 6px; font-size: 0.74rem;">
+                <input type="checkbox" id="rev-pdpa-mask" checked onchange="handlePdpaMaskToggle(event)">
+                <span>🔒 โหมดนิรนามตาม PDPA (De-identify PII)</span>
+              </label>
+              <button type="button" onclick="resetLabImportState()" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 0.74rem; font-weight: 700; color: #475569; cursor: pointer;">
+                🔄 สแกนไฟล์ใหม่
+              </button>
+            </div>
+          </div>
+
+          <div class="lab-review-container">
+            <!-- Left: Document Preview Pane -->
+            <div class="lab-preview-pane">
+              <div style="color: #94a3b8; font-size: 0.72rem; font-weight: 700; margin-bottom: 6px; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                <span>👁️ ภาพเอกสารต้นฉบับ</span>
+                <span id="lab-preview-filename" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cbd5e1;"></span>
+              </div>
+              
+              <!-- Multi-Image Switcher Chips -->
+              <div id="lab-preview-chips-container" style="width: 100%; margin-bottom: 6px; display: none;">
+                <div id="lab-preview-chips" class="lab-preview-chips"></div>
+              </div>
+
+              <img id="lab-preview-img" class="lab-preview-img" style="display: none;" alt="Preview">
+              <canvas id="lab-preview-canvas" class="lab-preview-canvas" style="display: none;"></canvas>
+              <div id="lab-preview-fallback" style="display: none; padding: 30px 10px; text-align: center; color: #94a3b8; font-size: 0.78rem;">
+                📄 เอกสาร PDF (สกัดข้อความเรียบร้อย)
+              </div>
+            </div>
+
+            <!-- Right: Extracted Data Form Grid -->
+            <div class="lab-data-pane">
+              <div style="font-size: 0.75rem; color: #059669; font-weight: 700; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 6px;">
+                <span>✅</span> สกัดข้อมูลสำเร็จ กรุณาตรวจสอบหรือปรับแก้ตัวเลขก่อนนำเข้าคำนวณผล (ช่องไฮไลต์เขียว = ตรวจพบจากเอกสาร)
+              </div>
+
+              <!-- Group 1: Patient Demographics & Vitals -->
+              <div>
+                <div class="lab-section-title">
+                  <span>👤</span> 1. ข้อมูลประจำตัวและสัญญาณชีพ (Demographics &amp; Vitals)
+                </div>
+                <div class="lab-field-row">
+                  <div class="lab-field-item">
+                    <label>ชื่อ-สกุล <span id="badge-pt-name" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="text" id="rev-pt-name" placeholder="ชื่อผู้ป่วย">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>HN <span id="badge-pt-hn" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="text" id="rev-pt-hn" placeholder="เลข HN">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>วันที่ตรวจ <span id="badge-date" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="date" id="rev-date">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>อายุ (ปี) <span id="badge-age" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-age" min="18" max="110">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>เพศกำเนิด <span id="badge-sex" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-sex">
+                      <option value="1">ชาย (Male)</option>
+                      <option value="0">หญิง (Female)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="lab-field-row" style="margin-top: 8px;">
+                  <div class="lab-field-item">
+                    <label>ส่วนสูง (cm) <span id="badge-height" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-height" placeholder="เช่น 165">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>น้ำหนัก (kg) <span id="badge-weight" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-weight" placeholder="เช่น 68">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>รอบเอว (นิ้ว) <span id="badge-waist" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-waist" placeholder="เช่น 34" step="0.5">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Office SBP (mmHg) <span id="badge-sbp" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-sbp" placeholder="เช่น 148">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Office DBP (mmHg) <span id="badge-dbp" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-dbp" placeholder="เช่น 92">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Heart Rate (bpm) <span id="badge-hr" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-hr" placeholder="เช่น 78">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Home SBP (mmHg) <span id="badge-home-sbp" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-home-sbp" placeholder="เช่น 132">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Home DBP (mmHg) <span id="badge-home-dbp" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-home-dbp" placeholder="เช่น 82">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group 2: Renal & Lipid Panel -->
+              <div>
+                <div class="lab-section-title" style="color: #0f766e;">
+                  <span>🧪</span> 2. ผลตรวจทางห้องปฏิบัติการ (Labs: Renal &amp; Lipids)
+                </div>
+                <div class="lab-field-row">
+                  <div class="lab-field-item">
+                    <label>Serum Cr (mg/dL) <span id="badge-scr" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-scr" step="0.01" placeholder="เช่น 1.0">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Potassium K+ (mEq/L) <span id="badge-k" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-k" step="0.1" placeholder="เช่น 4.2">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>UACR (mg/g) <span id="badge-uacr" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-uacr" placeholder="เช่น 15">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Total Cholesterol (mg/dL) <span id="badge-tc" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-tc" placeholder="เช่น 210">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Triglyceride (mg/dL) <span id="badge-tg" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-tg" placeholder="เช่น 150">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>HDL-C (mg/dL) <span id="badge-hdl" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-hdl" placeholder="เช่น 48">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Direct LDL-C (mg/dL) <span id="badge-ldl" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-ldl" placeholder="ถ้ามี (คำนวณอัตโนมัติ)">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>FBS (mg/dL) <span id="badge-fbs" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-fbs" placeholder="เช่น 110">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>HbA1c (%) <span id="badge-hba1c" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-hba1c" step="0.1" placeholder="เช่น 6.0">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group 3: Comorbidities & Risk Factors -->
+              <div>
+                <div class="lab-section-title" style="color: #6b21a8;">
+                  <span>📋</span> 3. โรคร่วมและปัจจัยเสี่ยง (Comorbidities &amp; Conditions)
+                </div>
+                <div class="lab-field-row">
+                  <div class="lab-field-item">
+                    <label>โรคเบาหวาน (DM) <span id="badge-dm" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-dm">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">เป็นเบาหวาน (Yes)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>สูบบุหรี่ (Smoking) <span id="badge-smoke" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-smoke">
+                      <option value="0">ไม่สูบ (No)</option>
+                      <option value="1">สูบ (Smoker)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>โรคหลอดเลือดหัวใจ (CAD) <span id="badge-cad" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-cad">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">มีประวัติ CAD/MI (Yes)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>หัวใจล้มเหลว (Heart Failure) <span id="badge-hf" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-hf">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">มีภาวะ HF (Yes)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>อัมพฤกษ์/อัมพาต (Stroke) <span id="badge-stroke" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-stroke">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">มีประวัติ Stroke/TIA (Yes)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>หัวใจเต้นพริ้ว (AF) <span id="badge-af" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-af">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">มีภาวะ AF (Yes)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="lab-import-footer">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="btn btn-outline" onclick="closeLabImportModal()">ปิด (Close)</button>
+          <button type="button" class="btn btn-outline" id="btn-reset-lab-batch" onclick="resetLabImportState()" title="เริ่มเลือกเอกสารใหม่และล้างหน่วยความจำ" style="display: none;">🔄 สแกนชุดใหม่ (Reset)</button>
+        </div>
+        <button type="button" class="lab-btn-apply" id="btn-apply-lab-data" onclick="applyExtractedDataToDashboard()">
+          <span>✅ นำเข้าข้อมูลและคำนวณผลทันที (Apply &amp; Calculate)</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- =========================================================================
        MODAL: EMR / HIS NOTE GENERATOR
@@ -6711,6 +7517,1257 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 // --- END emr_generator.js ---
+
+// --- BEGIN lab_import.js ---
+/**
+ * SMART LAB & DOCUMENT IMPORT CONTROLLER (AI Multimodal & Client-Side PDF Parser)
+ * รองรับการนำเข้าภาพถ่ายสลิปแล็บ / เอกสาร PDF สูงสุด 10 รูป พร้อมมาตรการ PDPA Zero-Retention
+ * พัฒนาโดย นพ.ธนภพ การุญ วิทยาลัยแพทยศาสตร์และการสาธารณสุข มหาวิทยาลัยอุบลราชธานี
+ */
+
+let activeLabEngine = 'gemini'; // 'gemini' | 'pdfjs'
+let currentLabFiles = []; // Array of { id, file, name, size, type, objectUrl, base64, dataUrl } (max 10)
+let currentPreviewIndex = 0;
+let currentExtractedData = {};
+let originalUnmaskedData = {};
+
+function initLabImport() {
+  // Load stored Gemini API Key
+  const savedKey = localStorage.getItem('gemini_api_key') || '';
+  const keyInput = document.getElementById('gemini-api-key-input');
+  const statusSpan = document.getElementById('gemini-key-status');
+  if (keyInput) keyInput.value = savedKey;
+  if (statusSpan) {
+    if (savedKey) {
+      statusSpan.innerText = '✅ บันทึก Key แล้ว (' + savedKey.substring(0, 6) + '...)';
+      statusSpan.style.color = '#15803d';
+    } else {
+      statusSpan.innerText = '(ยังไม่ได้ระบุ Key - ใช้ PDF Parser แบบออฟไลน์ได้)';
+      statusSpan.style.color = '#b45309';
+    }
+  }
+
+  // Setup drag & drop on dropzone
+  const dropzone = document.getElementById('lab-dropzone');
+  if (dropzone) {
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dragover');
+      }, false);
+    });
+
+    dropzone.addEventListener('drop', function(e) {
+      const dt = e.dataTransfer;
+      const files = dt ? dt.files : null;
+      if (files && files.length > 0) {
+        handleIncomingFiles(files);
+      }
+    }, false);
+  }
+
+  // Global Paste Listener (Ctrl+V / Cmd+V)
+  window.addEventListener('paste', function(e) {
+    if (e.clipboardData && e.clipboardData.items) {
+      for (let i = 0; i < e.clipboardData.items.length; i++) {
+        const item = e.clipboardData.items[i];
+        if (item.type.indexOf('image') !== -1) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            openLabImportModal();
+            handleIncomingFiles([file]);
+          }
+          return;
+        }
+      }
+    }
+  });
+}
+
+// Initialize on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initLabImport);
+} else {
+  initLabImport();
+}
+
+function openLabImportModal() {
+  const modal = document.getElementById('lab-import-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  const reviewArea = document.getElementById('lab-review-area');
+  const isReview = reviewArea && reviewArea.style.display !== 'none';
+  if (typeof updateLabModalFooterState === 'function') {
+    updateLabModalFooterState(isReview ? 'review' : 'queue');
+  }
+}
+
+function closeLabImportModal() {
+  const modal = document.getElementById('lab-import-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  purgeLabMemory();
+  if (typeof updateLabModalFooterState === 'function') {
+    updateLabModalFooterState('queue');
+  }
+}
+
+function handleLabImportBackdropClick(e) {
+  if (e && e.target && e.target.id === 'lab-import-modal') {
+    closeLabImportModal();
+  }
+}
+
+function triggerFileSelect() {
+  const fileInput = document.getElementById('lab-file-input');
+  if (fileInput) fileInput.click();
+}
+
+function triggerCameraCapture() {
+  const camInput = document.getElementById('lab-camera-input');
+  if (camInput) camInput.click();
+}
+
+function handleFileInputChange(e) {
+  if (e && e.target && e.target.files && e.target.files.length > 0) {
+    handleIncomingFiles(e.target.files);
+  }
+}
+
+function switchLabEngine(engine) {
+  activeLabEngine = engine;
+  const btnGemini = document.getElementById('btn-engine-gemini');
+  const btnPdfjs = document.getElementById('btn-engine-pdfjs');
+  const configBox = document.getElementById('lab-gemini-config-box');
+
+  if (engine === 'gemini') {
+    if (btnGemini) btnGemini.classList.add('active');
+    if (btnPdfjs) btnPdfjs.classList.remove('active');
+    if (configBox) configBox.style.display = 'block';
+  } else {
+    if (btnPdfjs) btnPdfjs.classList.add('active');
+    if (btnGemini) btnGemini.classList.remove('active');
+    if (configBox) configBox.style.display = 'none';
+  }
+}
+
+function saveGeminiApiKey() {
+  const input = document.getElementById('gemini-api-key-input');
+  const statusSpan = document.getElementById('gemini-key-status');
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    localStorage.removeItem('gemini_api_key');
+    if (statusSpan) {
+      statusSpan.innerText = '(ยังไม่ได้ระบุ Key)';
+      statusSpan.style.color = '#b45309';
+    }
+    showToast('⚠️ ลบ Gemini API Key เรียบร้อยแล้ว');
+    return;
+  }
+  localStorage.setItem('gemini_api_key', val);
+  if (statusSpan) {
+    statusSpan.innerText = '✅ บันทึก Key แล้ว (' + val.substring(0, 6) + '...)';
+    statusSpan.style.color = '#15803d';
+  }
+  showToast('✅ บันทึก Gemini API Key เรียบร้อยแล้ว!');
+}
+
+function toggleApiKeyVisibility() {
+  const input = document.getElementById('gemini-api-key-input');
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+// Update Modal Footer Buttons depending on workflow state ('queue' | 'loading' | 'review')
+function updateLabModalFooterState(state) {
+  const btnAction = document.getElementById('btn-apply-lab-data');
+  const btnReset = document.getElementById('btn-reset-lab-batch');
+  if (!btnAction) return;
+
+  if (state === 'review') {
+    btnAction.className = 'lab-btn-apply';
+    btnAction.style.background = '';
+    btnAction.disabled = false;
+    btnAction.innerHTML = '<span>✅ นำเข้าข้อมูลสู่ Dashboard และคำนวณผลทันที (Apply &amp; Calculate)</span>';
+    btnAction.onclick = applyExtractedDataToDashboard;
+    if (btnReset) btnReset.style.display = 'inline-block';
+  } else if (state === 'loading') {
+    btnAction.className = 'btn btn-outline';
+    btnAction.style.background = '';
+    btnAction.disabled = true;
+    btnAction.innerHTML = '<span>⏳ กำลังประมวลผล...</span>';
+    btnAction.onclick = null;
+    if (btnReset) btnReset.style.display = 'none';
+  } else {
+    // 'queue' or initial upload
+    btnAction.disabled = false;
+    const count = currentLabFiles ? currentLabFiles.length : 0;
+    if (count > 0) {
+      btnAction.className = 'lab-btn-apply';
+      btnAction.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+      btnAction.innerHTML = `<span>✨ วิเคราะห์และประเมินผล (${count} รูป)</span>`;
+      btnAction.onclick = startBatchAnalysis;
+    } else {
+      btnAction.className = 'btn btn-outline';
+      btnAction.style.background = '';
+      btnAction.innerHTML = '<span>📷 / 📄 เลือกภาพหรือ PDF</span>';
+      btnAction.onclick = triggerFileSelect;
+    }
+    if (btnReset) btnReset.style.display = count > 0 ? 'inline-block' : 'none';
+  }
+}
+
+function resetLabImportState() {
+  purgeLabMemory();
+  const dropzone = document.getElementById('lab-dropzone');
+  const loadingState = document.getElementById('lab-loading-state');
+  const reviewArea = document.getElementById('lab-review-area');
+  const queueBox = document.getElementById('lab-multi-queue');
+  if (dropzone) dropzone.style.display = 'flex';
+  if (loadingState) loadingState.style.display = 'none';
+  if (reviewArea) reviewArea.style.display = 'none';
+  if (queueBox) queueBox.style.display = 'none';
+  updateLabModalFooterState('queue');
+}
+
+// PDPA Zero-Retention Memory Purge Function
+function purgeLabMemory(showNotice = false) {
+  if (currentLabFiles && currentLabFiles.length > 0) {
+    currentLabFiles.forEach(item => {
+      if (item.objectUrl) {
+        try { URL.revokeObjectURL(item.objectUrl); } catch (e) {}
+      }
+      item.base64 = null;
+      item.dataUrl = null;
+      item.file = null;
+      item.objectUrl = null;
+    });
+  }
+  currentLabFiles = [];
+  currentExtractedData = {};
+  originalUnmaskedData = {};
+
+  const previewImg = document.getElementById('lab-preview-img');
+  if (previewImg) {
+    previewImg.src = '';
+    previewImg.style.display = 'none';
+  }
+  const canvas = document.getElementById('lab-preview-canvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.style.display = 'none';
+  }
+  const fallback = document.getElementById('lab-preview-fallback');
+  if (fallback) fallback.style.display = 'none';
+
+  const fileInput = document.getElementById('lab-file-input');
+  if (fileInput) fileInput.value = '';
+  const camInput = document.getElementById('lab-camera-input');
+  if (camInput) camInput.value = '';
+
+  const strip = document.getElementById('lab-thumbnail-strip');
+  if (strip) strip.innerHTML = '';
+  const queueBox = document.getElementById('lab-multi-queue');
+  if (queueBox) queueBox.style.display = 'none';
+
+  if (showNotice) {
+    showToast('🔒 ทำลายข้อมูลและภาพถ่ายใน RAM เรียบร้อยแล้ว (PDPA Zero-Retention)');
+  }
+}
+
+// Multi-Image Queue Manager (Up to 10 Images)
+function handleIncomingFiles(fileList) {
+  if (!fileList || fileList.length === 0) return;
+  const filesArray = Array.from(fileList);
+
+  const validFiles = filesArray.filter(f => {
+    const isPdf = f.type === 'application/pdf' || (f.name && f.name.toLowerCase().endsWith('.pdf'));
+    const isImg = (f.type && f.type.startsWith('image/')) || (f.name && /\.(jpe?g|png|webp|bmp)$/i.test(f.name));
+    return isPdf || isImg;
+  });
+
+  if (validFiles.length === 0) {
+    alert('กรุณาเลือกไฟล์ภาพ (.jpg, .png, .webp) หรือเอกสาร PDF');
+    return;
+  }
+
+  const availableSlots = 10 - currentLabFiles.length;
+  if (availableSlots <= 0) {
+    alert('⚠️ คิวรูปภาพเต็มแล้ว (สูงสุด 10 ภาพ) กรุณาลบภาพที่ไม่ต้องการออกก่อนเพิ่มใหม่');
+    return;
+  }
+
+  const filesToAdd = validFiles.slice(0, availableSlots);
+  if (validFiles.length > availableSlots) {
+    alert(`⚠️ เลือกมาทั้งหมด ${validFiles.length} ภาพ ระบบเพิ่มเข้าคิวให้ ${availableSlots} ภาพแรก (รองรับสูงสุดไม่เกิน 10 ภาพ)`);
+  }
+
+  filesToAdd.forEach((file) => {
+    let objectUrl = '';
+    try {
+      objectUrl = URL.createObjectURL(file);
+    } catch (e) {
+      console.warn('Object URL error:', e);
+    }
+
+    currentLabFiles.push({
+      id: 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      file: file,
+      name: file.name || `document_${currentLabFiles.length + 1}`,
+      size: file.size || 0,
+      type: file.type || 'image/jpeg',
+      objectUrl: objectUrl,
+      base64: null,
+      dataUrl: null
+    });
+  });
+
+  renderMultiImageQueue();
+}
+
+function renderMultiImageQueue() {
+  const queueBox = document.getElementById('lab-multi-queue');
+  const strip = document.getElementById('lab-thumbnail-strip');
+  const countBadge = document.getElementById('lab-queue-count-badge');
+  const btnCount = document.getElementById('btn-analysis-count');
+  const dropzone = document.getElementById('lab-dropzone');
+  const reviewArea = document.getElementById('lab-review-area');
+
+  if (reviewArea) reviewArea.style.display = 'none';
+
+  if (currentLabFiles.length === 0) {
+    if (queueBox) queueBox.style.display = 'none';
+    if (dropzone) dropzone.style.display = 'flex';
+    if (typeof updateLabModalFooterState === 'function') updateLabModalFooterState('queue');
+    return;
+  }
+
+  if (queueBox) queueBox.style.display = 'flex';
+  if (dropzone) dropzone.style.display = 'flex';
+
+  if (countBadge) countBadge.innerText = `${currentLabFiles.length} / 10 รูป`;
+  if (btnCount) btnCount.innerText = currentLabFiles.length;
+
+  if (strip) {
+    strip.innerHTML = '';
+    currentLabFiles.forEach((item, idx) => {
+      const card = document.createElement('div');
+      card.className = 'lab-thumb-card';
+      card.id = `thumb-${idx}`;
+
+      const isPdf = item.type === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf');
+      const sizeStr = item.size > 1048576 ? (item.size / 1048576).toFixed(1) + 'MB' : Math.round(item.size / 1024) + 'KB';
+
+      card.innerHTML = `
+        <span class="lab-thumb-index">#${idx + 1}</span>
+        <button type="button" class="lab-thumb-del" onclick="removeLabFile(${idx})" title="ลบภาพนี้">✕</button>
+        ${isPdf ? `<div style="display:flex;align-items:center;justify-content:center;height:72px;font-size:1.8rem;background:#f1f5f9;">📄</div>` : `<img src="${item.objectUrl}" alt="Thumb ${idx + 1}">`}
+        <div class="lab-thumb-meta" title="${item.name}">${item.name}<br>(${sizeStr})</div>
+      `;
+      strip.appendChild(card);
+    });
+  }
+
+  if (typeof updateLabModalFooterState === 'function') updateLabModalFooterState('queue');
+}
+
+function removeLabFile(idx) {
+  if (currentLabFiles[idx] && currentLabFiles[idx].objectUrl) {
+    try { URL.revokeObjectURL(currentLabFiles[idx].objectUrl); } catch(e) {}
+  }
+  currentLabFiles.splice(idx, 1);
+  renderMultiImageQueue();
+}
+
+function clearAllLabFiles() {
+  purgeLabMemory();
+  renderMultiImageQueue();
+  showToast('🗑️ ล้างคิวภาพเรียบร้อยแล้ว (PDPA Clean)');
+}
+
+// Dynamic Gemini Model Discovery via ModelService.ListModels
+async function findWorkingGeminiModel(apiKey) {
+  const blockedKeywords = [
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-1.5',
+    'gemini-1.0'
+  ];
+
+  const preferredModelOrder = [
+    'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-2.5-flash'
+  ];
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.models && Array.isArray(data.models)) {
+        const validModels = data.models
+          .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+          .map(m => m.name.replace(/^models\//, ''))
+          .filter(m => !blockedKeywords.some(bad => m.includes(bad)));
+
+        console.log('Available non-deprecated Gemini models for this key:', validModels);
+
+        for (const pref of preferredModelOrder) {
+          const match = validModels.find(m => m === pref);
+          if (match) return match;
+        }
+
+        for (const pref of preferredModelOrder) {
+          const match = validModels.find(m => m.startsWith(pref + '-'));
+          if (match) return match;
+        }
+
+        const any3Flash = validModels.find(m => m.startsWith('gemini-3.') && m.includes('flash'));
+        if (any3Flash) return any3Flash;
+
+        const anyFlash = validModels.find(m => m.includes('flash'));
+        if (anyFlash) return anyFlash;
+
+        const anyGen = validModels.find(m => m.includes('gemini'));
+        if (anyGen) return anyGen;
+      }
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      if (errData.error && errData.error.message) {
+        throw new Error(errData.error.message);
+      }
+    }
+  } catch (e) {
+    console.warn('ListModels check notice:', e);
+    if (e.message && (e.message.includes('API key not valid') || e.message.includes('API_KEY_INVALID'))) {
+      throw new Error('API Key ไม่ถูกต้อง: กรุณาตรวจสอบ API Key จาก Google AI Studio');
+    }
+  }
+  return 'gemini-3.5-flash-lite';
+}
+
+// Local PDF Text & Layout Extractor
+async function parsePdfLocally(arrayBuffer, file) {
+  if (!window.pdfjsLib) {
+    throw new Error('PDF.js library ยังไม่พร้อมใช้งาน');
+  }
+
+  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+
+  const maxPages = Math.min(pdf.numPages, 5);
+  for (let p = 1; p <= maxPages; p++) {
+    const page = await pdf.getPage(p);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map(item => item.str).join(' ');
+    fullText += '\n' + pageText;
+  }
+
+  // Render Page 1 to preview canvas
+  try {
+    const page1 = await pdf.getPage(1);
+    const canvas = document.getElementById('lab-preview-canvas');
+    if (canvas) {
+      const viewport = page1.getViewport({ scale: 1.0 });
+      const scale = Math.min(260 / viewport.width, 380 / viewport.height);
+      const scaledViewport = page1.getViewport({ scale: Math.max(scale, 0.4) });
+      canvas.width = scaledViewport.width;
+      canvas.height = scaledViewport.height;
+      const ctx = canvas.getContext('2d');
+      await page1.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+      canvas.style.display = 'block';
+      const img = document.getElementById('lab-preview-img');
+      const fallback = document.getElementById('lab-preview-fallback');
+      if (img) img.style.display = 'none';
+      if (fallback) fallback.style.display = 'none';
+    }
+  } catch (renderErr) {
+    console.warn('Canvas render error:', renderErr);
+    const fallback = document.getElementById('lab-preview-fallback');
+    if (fallback) fallback.style.display = 'block';
+  }
+
+  // Run medical regex extractor
+  const extracted = parseLabText(fullText);
+  renderExtractedDataToReviewForm(extracted, file);
+}
+
+// Medical Regex Dictionary Parser for Thai & English Lab Reports
+function parseLabText(text) {
+  const result = {};
+  if (!text) return result;
+  const clean = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Total Cholesterol
+  const tcMatch = clean.match(/(?:total\s*cholesterol|t[-.]?chol(?:esterol)?|\btc\b|คอเลสเตอรอล|โคเลสเตอรอล|cholesterol)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)/i);
+  if (tcMatch) result.total_cholesterol = parseFloat(tcMatch[1]);
+
+  // Triglyceride
+  const tgMatch = clean.match(/(?:triglycerides?|\btg\b|ไตรกลีเซอไรด์|trig)\s*[:=]?\s*([0-9]{2,4}(?:\.[0-9]+)?)/i);
+  if (tgMatch) result.triglyceride = parseFloat(tgMatch[1]);
+
+  // HDL-C
+  const hdlMatch = clean.match(/(?:hdl[- ]*chol(?:esterol)?|hdl[- ]*c|\bhdl\b|เอชดีแอล)\s*[:=]?\s*([0-9]{1,3}(?:\.[0-9]+)?)/i);
+  if (hdlMatch) result.hdl_c = parseFloat(hdlMatch[1]);
+
+  // LDL-C
+  const ldlMatch = clean.match(/(?:direct\s*ldl(?:[- ]*c)?|ldl[- ]*chol(?:esterol)?|ldl[- ]*c|\bldl\b|แอลดีแอล)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)/i);
+  if (ldlMatch) result.ldl_c = parseFloat(ldlMatch[1]);
+
+  // Serum Creatinine
+  const crMatch = clean.match(/(?:serum\s*creatinine|s\.?cr(?:eatinine)?|creatinine|\bcr\b|ครีเอตินิน)\s*[:=]?\s*([0-9]{1,2}(?:\.[0-9]{1,2})?)/i);
+  if (crMatch) result.serum_creatinine = parseFloat(crMatch[1]);
+
+  // Potassium (K+)
+  const kMatch = clean.match(/(?:serum\s*potassium|potassium|\bk\+?\b|โพแทสเซียม)\s*[:=]?\s*([0-9]{1,2}(?:\.[0-9]{1,2})?)/i);
+  if (kMatch) result.k_level = parseFloat(kMatch[1]);
+
+  // eGFR
+  const egfrMatch = clean.match(/(?:egfr|gfr|ckd[- ]*epi)\s*[:=]?\s*([0-9]{1,3}(?:\.[0-9]+)?)/i);
+  if (egfrMatch) result.egfr = parseFloat(egfrMatch[1]);
+
+  // UACR / Microalbumin
+  const uacrMatch = clean.match(/(?:uacr|urine\s*alb\/cr|microalbumin\/?cr|ไข่ขาวรั่ว)\s*[:=]?\s*([0-9]{1,4}(?:\.[0-9]+)?)/i);
+  if (uacrMatch) result.uacr = parseFloat(uacrMatch[1]);
+
+  // HbA1c
+  const a1cMatch = clean.match(/(?:hba1c|hemoglobin\s*a1c|\ba1c\b|glycated\s*hb|ฮีโมโกลบิน\s*เอวันซี)\s*[:=]?\s*([0-9]{1,2}(?:\.[0-9]+)?)/i);
+  if (a1cMatch) result.hba1c = parseFloat(a1cMatch[1]);
+
+  // FBS / Glucose
+  const fbsMatch = clean.match(/(?:fbs|fasting\s*blood\s*sugar|fasting\s*glucose|glucose)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)/i);
+  if (fbsMatch) {
+    result.fbs = parseFloat(fbsMatch[1]);
+    if (result.fbs >= 126 && result.diabetes === undefined) result.diabetes = true;
+  }
+
+  // Blood Pressure
+  const bpMatch = clean.match(/(?:bp|blood\s*pressure|ความดันโลหิต)\s*[:=]?\s*([0-9]{2,3})\s*[\/\-]\s*([0-9]{2,3})/i);
+  if (bpMatch) {
+    result.sbp = parseInt(bpMatch[1], 10);
+    result.dbp = parseInt(bpMatch[2], 10);
+  }
+
+  // Heart Rate
+  const hrMatch = clean.match(/(?:hr|pulse|heart\s*rate|ชีพจร)\s*[:=]?\s*([0-9]{2,3})/i);
+  if (hrMatch) result.hr = parseInt(hrMatch[1], 10);
+
+  // Age
+  const ageMatch = clean.match(/(?:อายุ|age)\s*[:=]?\s*([0-9]{1,3})\s*(?:ปี|yrs?|years?)?/i);
+  if (ageMatch) result.age = parseInt(ageMatch[1], 10);
+
+  // Sex
+  const sexMatch = clean.match(/(?:เพศ|sex|gender)\s*[:=]?\s*(ชาย|หญิง|male|female|\bm\b|\bf\b)/i);
+  if (sexMatch) {
+    const s = sexMatch[1].toLowerCase();
+    if (s === 'ชาย' || s === 'male' || s === 'm') result.sex = 'male';
+    else if (s === 'หญิง' || s === 'female' || s === 'f') result.sex = 'female';
+  }
+
+  // HN
+  const hnMatch = clean.match(/(?:hn|h\.n\.|เลขประจำตัวผู้ป่วย)\s*[:=]?\s*([A-Za-z0-9\/\-]+)/i);
+  if (hnMatch) result.hn = hnMatch[1].trim();
+
+  // Patient Name
+  const nameMatch = clean.match(/(?:ชื่อ[- ]*สกุล|ชื่อผู้ป่วย|patient\s*name|name)\s*[:=]?\s*([^\n\r,0-9]{3,35})/i);
+  if (nameMatch) result.patient_name = nameMatch[1].trim();
+
+  // Date
+  const dateMatch = clean.match(/(?:วันที่ตรวจ|วันที่|date|collection\s*date)\s*[:=]?\s*([0-9]{1,2}[\/\-.][0-9]{1,2}[\/\-.][0-9]{2,4})/i);
+  if (dateMatch) result.test_date = dateMatch[1].trim();
+
+  // Weight / Height / Waist
+  const wtMatch = clean.match(/(?:bw|body\s*weight|น้ำหนัก|weight)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)\s*(?:kg|กก)?/i);
+  if (wtMatch) result.weight = parseFloat(wtMatch[1]);
+
+  const htMatch = clean.match(/(?:ht|height|ส่วนสูง)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)\s*(?:cm|ซม)?/i);
+  if (htMatch) result.height = parseFloat(htMatch[1]);
+
+  const waistMatch = clean.match(/(?:waist|รอบเอว)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)\s*(?:นิ้ว|inch|in|\"|ซม|cm)?/i);
+  if (waistMatch) {
+    let w = parseFloat(waistMatch[1]);
+    if (w > 50) w = Math.round(w / 2.54); // Convert cm to inches if > 50
+    result.waist = w;
+  }
+
+  return result;
+}
+
+// Compress & encode image for fast upload, accurate OCR, and memory safety
+function compressAndEncodeImage(file, maxDimension = 1600, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error('ไม่พบไฟล์ภาพ'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์ภาพได้'));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('ไม่สามารถประมวลผลรูปภาพได้'));
+      img.onload = () => {
+        let width = img.naturalWidth || img.width || 800;
+        let height = img.naturalHeight || img.height || 600;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas 2D Context ไม่พร้อมใช้งาน'));
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        const base64 = dataUrl.split(',')[1] || '';
+        resolve({ dataUrl, base64, width, height });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Render PDF Page to high-res JPEG for Gemini Multimodal
+async function renderPdfPageToJpeg(file, pageNum = 1, scale = 2.0) {
+  if (!window.pdfjsLib) {
+    throw new Error('PDF.js library ยังไม่พร้อมใช้งาน');
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const page = await pdf.getPage(pageNum);
+  const viewport = page.getViewport({ scale: scale });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D Context ไม่พร้อมใช้งาน');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, viewport.width, viewport.height);
+
+  await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  const base64 = dataUrl.split(',')[1] || '';
+  return { dataUrl, base64, width: viewport.width, height: viewport.height };
+}
+
+// Batch Multi-Image Synthesis Engine (Supports up to 10 Images + PDPA Compliance)
+async function startBatchAnalysis() {
+  if (!currentLabFiles || currentLabFiles.length === 0) {
+    alert('กรุณาเลือกไฟล์ภาพหรือเอกสาร PDF อย่างน้อย 1 ไฟล์ (สูงสุด 10 รูป)');
+    return;
+  }
+
+  if (typeof updateLabModalFooterState === 'function') {
+    updateLabModalFooterState('loading');
+  }
+
+  const dropzone = document.getElementById('lab-dropzone');
+  const queueBox = document.getElementById('lab-multi-queue');
+  const reviewArea = document.getElementById('lab-review-area');
+  const loadingState = document.getElementById('lab-loading-state');
+  const loadingTitle = document.getElementById('lab-loading-title');
+  const loadingDesc = document.getElementById('lab-loading-desc');
+
+  if (dropzone) dropzone.style.display = 'none';
+  if (queueBox) queueBox.style.display = 'none';
+  if (reviewArea) reviewArea.style.display = 'none';
+  if (loadingState) loadingState.style.display = 'block';
+
+  const numFiles = currentLabFiles.length;
+  if (loadingTitle) {
+    loadingTitle.innerText = `✨ AI Multimodal กำลังวิเคราะห์และผสานข้อมูลจาก ${numFiles} รูปภาพ...`;
+  }
+  if (loadingDesc) {
+    loadingDesc.innerText = `ระบบกำลังสังเคราะห์ตัวแปรทางคลินิก (BP, Renal labs, Lipid panel, Vitals, Comorbidities) จากสลิปทุกใบ กรุณารอสักครู่...`;
+  }
+
+  try {
+    // 1. Local PDF Parser Engine check
+    if (activeLabEngine === 'pdfjs') {
+      const firstPdf = currentLabFiles.find(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+      if (!firstPdf) {
+        alert('Local PDF Parser รองรับเฉพาะไฟล์เอกสาร PDF เท่านั้น กรุณาสลับไปใช้ Gemini AI Multimodal เพื่ออ่านภาพถ่ายสลิป');
+        resetLabImportState();
+        return;
+      }
+      if (numFiles > 1) {
+        showToast('ℹ️ Local PDF Parser ประมวลผลเอกสาร PDF ไฟล์แรกในคิว');
+      }
+      const buf = await firstPdf.file.arrayBuffer();
+      await parsePdfLocally(buf, firstPdf.file);
+      return;
+    }
+
+    // 2. Gemini AI Multimodal Engine
+    const apiKey = (localStorage.getItem('gemini_api_key') || '').trim();
+    if (!apiKey) {
+      if (loadingState) loadingState.style.display = 'none';
+      if (dropzone) dropzone.style.display = 'flex';
+      if (queueBox) queueBox.style.display = 'flex';
+      alert('💡 สำหรับการอ่านภาพถ่ายสลิป/กระดาษด้วย AI จำเป็นต้องระบุ Gemini API Key (ฟรี)\n\nกรุณากรอก API Key ในช่องด้านบน หรือคลิกลิงก์ "รับ Gemini API Key ฟรีจาก Google AI Studio" (ใช้เวลาเพียง 1 นาที)');
+      document.getElementById('gemini-api-key-input')?.focus();
+      return;
+    }
+
+    // Prepare image parts array
+    const imageParts = [];
+    for (let i = 0; i < currentLabFiles.length; i++) {
+      const item = currentLabFiles[i];
+      if (item.type === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf')) {
+        const pdfRes = await renderPdfPageToJpeg(item.file);
+        item.base64 = pdfRes.base64;
+        item.dataUrl = pdfRes.dataUrl;
+        imageParts.push({ mimeType: 'image/jpeg', data: pdfRes.base64, name: item.name });
+      } else {
+        const imgRes = await compressAndEncodeImage(item.file);
+        item.base64 = imgRes.base64;
+        item.dataUrl = imgRes.dataUrl;
+        imageParts.push({ mimeType: 'image/jpeg', data: imgRes.base64, name: item.name });
+      }
+    }
+
+    const prompt = `You are an expert clinical hypertension and cardiology multimodal AI.
+You are provided with ${numFiles} medical lab slips, hospital monitor photos, prescription slips, or clinical report documents belonging to the SAME patient.
+Your task is to synthesize, cross-reference, and aggregate all clinical laboratory values and patient parameters across ALL images into a single unified JSON object.
+
+[PDPA & Privacy Protection Rule]:
+- Strictly DO NOT extract, output, or store national identification numbers (เลขประจำตัวประชาชน 13 หลัก), telephone numbers, home addresses, or contact information.
+- For patient_name and hn: extract ONLY if clearly visible on the slip, otherwise leave null.
+
+[Multi-slip Cross-Referencing Rule]:
+- Slip 1 might have Lipid panel (Cholesterol, Triglyceride, HDL, LDL).
+- Slip 2 might have Renal profile (Creatinine, Potassium K+, eGFR, UACR) or Glycemic status (HbA1c, FBS).
+- Slip 3 might have Blood Pressure (Office or Home BP), Heart Rate, Body Weight, Height, Waist circumference, Smoking status, or Medications / Comorbidities (Diabetes, CAD, Stroke, Heart Failure, AF).
+- Synthesize all documents into one consolidated clinical record.
+- If the same test appears on multiple slips, use the most recent or highest-precision reading.
+- Standard unit for lipids is mg/dL. If mmol/L is reported, convert to mg/dL:
+  * Total Cholesterol, HDL-C, LDL-C: multiply mmol/L by 38.67
+  * Triglycerides: multiply mmol/L by 88.57
+- Standard unit for Serum Creatinine is mg/dL. If in µmol/L, divide by 88.4.
+- Standard unit for Serum Potassium (K+) is mEq/L or mmol/L.
+- If FBS >= 126 or HbA1c >= 6.5%, set diabetes to true.
+- If waist circumference is in cm, convert to inches by dividing by 2.54 if requested.
+
+Respond ONLY with valid JSON with this exact schema:
+{
+  "patient_name": string or null,
+  "hn": string or null,
+  "test_date": "YYYY-MM-DD" or null,
+  "age": number or null,
+  "sex": "male" | "female" | null,
+  "height": number (cm) or null,
+  "weight": number (kg) or null,
+  "waist": number (inches) or null,
+  "sbp": number (Office SBP mmHg) or null,
+  "dbp": number (Office DBP mmHg) or null,
+  "hr": number (bpm) or null,
+  "home_sbp": number (Home SBP mmHg) or null,
+  "home_dbp": number (Home DBP mmHg) or null,
+  "serum_creatinine": number (mg/dL) or null,
+  "k_level": number (mEq/L) or null,
+  "uacr": number (mg/g) or null,
+  "total_cholesterol": number (mg/dL) or null,
+  "triglyceride": number (mg/dL) or null,
+  "hdl_c": number (mg/dL) or null,
+  "ldl_c": number (mg/dL) or null,
+  "fbs": number (mg/dL) or null,
+  "hba1c": number (%) or null,
+  "diabetes": boolean or null,
+  "smoking": boolean or null,
+  "cad": boolean or null,
+  "hf": boolean or null,
+  "stroke": boolean or null,
+  "af": boolean or null
+}`;
+
+    let preferredModel = 'gemini-3.5-flash-lite';
+    try {
+      preferredModel = await findWorkingGeminiModel(apiKey);
+    } catch (mErr) {
+      console.warn('Dynamic model discovery notice:', mErr);
+    }
+
+    const fallbackList = [
+      preferredModel,
+      'gemini-3.5-flash-lite',
+      'gemini-3.5-flash',
+      'gemini-3.8-flash',
+      'gemini-3.7-flash',
+      'gemini-2.5-flash'
+    ];
+    const blockedKeywords = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-1.5', 'gemini-1.0'];
+    const candidateModels = fallbackList.filter((m, idx, arr) => 
+      m && arr.indexOf(m) === idx && !blockedKeywords.some(bad => m.includes(bad))
+    );
+
+    const contentsParts = [{ text: prompt }];
+    for (const p of imageParts) {
+      contentsParts.push({
+        inlineData: {
+          mimeType: p.mimeType,
+          data: p.data
+        }
+      });
+    }
+
+    const payload = {
+      contents: [{ parts: contentsParts }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.1
+      }
+    };
+
+    let lastError = null;
+    let resJson = null;
+
+    for (const model of candidateModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || `HTTP ${response.status} ${response.statusText}`;
+          lastError = new Error(`[${model}] ${errMsg}`);
+          console.warn(`Model ${model} failed:`, errMsg);
+          continue;
+        }
+
+        resJson = await response.json();
+        if (resJson && resJson.candidates && resJson.candidates[0]?.content?.parts?.[0]?.text) {
+          console.log(`Successfully synthesized ${numFiles} images using: ${model}`);
+          break;
+        }
+      } catch (callErr) {
+        lastError = callErr;
+        console.warn(`Model ${model} network error:`, callErr);
+      }
+    }
+
+    if (!resJson || !resJson.candidates || !resJson.candidates[0]?.content?.parts?.[0]?.text) {
+      let errMsg = lastError ? lastError.message : 'ไม่สามารถประมวลผลด้วย AI ได้ กรุณาตรวจสอบ API Key';
+      if (errMsg.includes('API key not valid') || errMsg.includes('API_KEY_INVALID')) {
+        errMsg = 'API Key ไม่ถูกต้อง กรุณาตรวจสอบ API Key จาก Google AI Studio';
+      } else if (errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota')) {
+        errMsg = 'โควตาการใช้งาน Gemini API ฟรีชั่วคราวเต็ม กรุณารอสักครู่แล้วลองใหม่';
+      }
+      throw new Error(errMsg);
+    }
+
+    const textOut = resJson.candidates[0].content.parts[0].text;
+    let parsed = {};
+    try {
+      parsed = JSON.parse(textOut);
+    } catch (e) {
+      const clean = textOut.replace(/```json/gi, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(clean);
+    }
+
+    setupReviewImageSwitcher();
+    renderExtractedDataToReviewForm(parsed);
+
+  } catch (err) {
+    console.error('Batch extraction error:', err);
+    if (loadingState) loadingState.style.display = 'none';
+    if (queueBox && currentLabFiles.length > 0) queueBox.style.display = 'flex';
+    else if (dropzone) dropzone.style.display = 'flex';
+    if (typeof updateLabModalFooterState === 'function') updateLabModalFooterState('queue');
+    alert('เกิดข้อผิดพลาดในการอ่านเอกสาร: ' + (err.message || err));
+  }
+}
+
+// Setup thumbnail switcher chips in review pane
+function setupReviewImageSwitcher() {
+  currentPreviewIndex = 0;
+  const chipsContainer = document.getElementById('lab-preview-chips-container');
+  const chipsBox = document.getElementById('lab-preview-chips');
+  
+  if (chipsContainer && chipsBox) {
+    if (currentLabFiles.length > 1) {
+      chipsContainer.style.display = 'block';
+      chipsBox.innerHTML = '';
+      currentLabFiles.forEach((item, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'lab-preview-chip' + (idx === 0 ? ' active' : '');
+        btn.innerText = `รูปที่ ${idx + 1}`;
+        btn.onclick = () => switchPreviewImage(idx);
+        chipsBox.appendChild(btn);
+      });
+    } else {
+      chipsContainer.style.display = 'none';
+    }
+  }
+  switchPreviewImage(0);
+}
+
+function switchPreviewImage(idx) {
+  if (!currentLabFiles || !currentLabFiles[idx]) return;
+  currentPreviewIndex = idx;
+
+  const chips = document.querySelectorAll('.lab-preview-chip');
+  chips.forEach((c, i) => {
+    if (i === idx) c.classList.add('active');
+    else c.classList.remove('active');
+  });
+
+  const item = currentLabFiles[idx];
+  const previewImg = document.getElementById('lab-preview-img');
+  const previewFilename = document.getElementById('lab-preview-filename');
+  const canvas = document.getElementById('lab-preview-canvas');
+  const fallback = document.getElementById('lab-preview-fallback');
+
+  if (previewFilename) {
+    previewFilename.innerText = `(#${idx + 1}/${currentLabFiles.length}) ` + (item.name || 'document');
+  }
+
+  if (previewImg) {
+    previewImg.src = item.dataUrl || item.objectUrl || '';
+    previewImg.style.display = 'block';
+  }
+  if (canvas) canvas.style.display = 'none';
+  if (fallback) fallback.style.display = 'none';
+}
+
+// PDPA De-identification Masking Switch
+function handlePdpaMaskToggle(e) {
+  const isMasked = document.getElementById('rev-pdpa-mask')?.checked;
+  const nameInput = document.getElementById('rev-pt-name');
+  const hnInput = document.getElementById('rev-pt-hn');
+  if (!nameInput || !hnInput) return;
+
+  if (isMasked) {
+    nameInput.value = 'ผู้รับการตรวจ (นิรนาม / Anonymized)';
+    hnInput.value = 'HN-******';
+    nameInput.disabled = true;
+    hnInput.disabled = true;
+  } else {
+    nameInput.disabled = false;
+    hnInput.disabled = false;
+    nameInput.value = originalUnmaskedData.patient_name || '';
+    hnInput.value = originalUnmaskedData.hn || '';
+  }
+}
+
+// Populate data into review grid
+function renderExtractedDataToReviewForm(data, file) {
+  currentExtractedData = data || {};
+  originalUnmaskedData = {
+    patient_name: data.patient_name || '',
+    hn: data.hn || ''
+  };
+
+  function setField(fieldId, badgeId, val, formatFn) {
+    const input = document.getElementById(fieldId);
+    const badge = document.getElementById(badgeId);
+    if (!input) return;
+
+    if (val !== undefined && val !== null && val !== '') {
+      input.value = formatFn ? formatFn(val) : val;
+      input.classList.add('detected-highlight');
+      if (badge) badge.style.display = 'inline-block';
+    } else {
+      input.classList.remove('detected-highlight');
+      if (badge) badge.style.display = 'none';
+    }
+  }
+
+  const isMasked = document.getElementById('rev-pdpa-mask') ? document.getElementById('rev-pdpa-mask').checked : true;
+  if (isMasked) {
+    const nameInput = document.getElementById('rev-pt-name');
+    const hnInput = document.getElementById('rev-pt-hn');
+    if (nameInput) {
+      nameInput.value = 'ผู้รับการตรวจ (นิรนาม / Anonymized)';
+      nameInput.disabled = true;
+    }
+    if (hnInput) {
+      hnInput.value = 'HN-******';
+      hnInput.disabled = true;
+    }
+    const badgeName = document.getElementById('badge-pt-name');
+    const badgeHn = document.getElementById('badge-pt-hn');
+    if (badgeName) badgeName.style.display = data.patient_name ? 'inline-block' : 'none';
+    if (badgeHn) badgeHn.style.display = data.hn ? 'inline-block' : 'none';
+  } else {
+    setField('rev-pt-name', 'badge-pt-name', data.patient_name);
+    setField('rev-pt-hn', 'badge-pt-hn', data.hn);
+  }
+
+  // Date normalization
+  let dateStr = data.test_date;
+  if (dateStr && dateStr.includes('/')) {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      let yr = parseInt(parts[2], 10);
+      if (yr > 2400) yr -= 543;
+      dateStr = yr + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+    }
+  }
+  setField('rev-date', 'badge-date', dateStr);
+
+  setField('rev-age', 'badge-age', data.age);
+  if (data.sex !== undefined && data.sex !== null) {
+    const sexVal = (data.sex === 'male' || data.sex === '1' || data.sex === 1) ? '1' : '0';
+    setField('rev-sex', 'badge-sex', sexVal);
+  } else {
+    setField('rev-sex', 'badge-sex', null);
+  }
+
+  setField('rev-height', 'badge-height', data.height);
+  setField('rev-weight', 'badge-weight', data.weight);
+  setField('rev-waist', 'badge-waist', data.waist);
+
+  setField('rev-sbp', 'badge-sbp', data.sbp);
+  setField('rev-dbp', 'badge-dbp', data.dbp);
+  setField('rev-hr', 'badge-hr', data.hr);
+  setField('rev-home-sbp', 'badge-home-sbp', data.home_sbp);
+  setField('rev-home-dbp', 'badge-home-dbp', data.home_dbp);
+
+  // Labs
+  setField('rev-scr', 'badge-scr', data.serum_creatinine);
+  setField('rev-k', 'badge-k', data.k_level);
+  setField('rev-uacr', 'badge-uacr', data.uacr);
+  setField('rev-tc', 'badge-tc', data.total_cholesterol, Math.round);
+  setField('rev-tg', 'badge-tg', data.triglyceride, Math.round);
+  setField('rev-hdl', 'badge-hdl', data.hdl_c, Math.round);
+  setField('rev-ldl', 'badge-ldl', data.ldl_c, Math.round);
+  setField('rev-fbs', 'badge-fbs', data.fbs);
+  setField('rev-hba1c', 'badge-hba1c', data.hba1c);
+
+  // Comorbidities
+  if (data.diabetes !== undefined && data.diabetes !== null) {
+    setField('rev-dm', 'badge-dm', data.diabetes ? '1' : '0');
+  } else {
+    setField('rev-dm', 'badge-dm', null);
+  }
+
+  if (data.smoking !== undefined && data.smoking !== null) {
+    setField('rev-smoke', 'badge-smoke', data.smoking ? '1' : '0');
+  } else {
+    setField('rev-smoke', 'badge-smoke', null);
+  }
+
+  if (data.cad !== undefined && data.cad !== null) {
+    setField('rev-cad', 'badge-cad', data.cad ? '1' : '0');
+  } else {
+    setField('rev-cad', 'badge-cad', null);
+  }
+
+  if (data.hf !== undefined && data.hf !== null) {
+    setField('rev-hf', 'badge-hf', data.hf ? '1' : '0');
+  } else {
+    setField('rev-hf', 'badge-hf', null);
+  }
+
+  if (data.stroke !== undefined && data.stroke !== null) {
+    setField('rev-stroke', 'badge-stroke', data.stroke ? '1' : '0');
+  } else {
+    setField('rev-stroke', 'badge-stroke', null);
+  }
+
+  if (data.af !== undefined && data.af !== null) {
+    setField('rev-af', 'badge-af', data.af ? '1' : '0');
+  } else {
+    setField('rev-af', 'badge-af', null);
+  }
+
+  // Hide loading, show review area
+  const loadingState = document.getElementById('lab-loading-state');
+  const reviewArea = document.getElementById('lab-review-area');
+  if (loadingState) loadingState.style.display = 'none';
+  if (reviewArea) reviewArea.style.display = 'flex';
+  if (typeof updateLabModalFooterState === 'function') updateLabModalFooterState('review');
+}
+
+// Apply verified values to Dashboard and Calculate
+async function applyExtractedDataToDashboard() {
+  const reviewArea = document.getElementById('lab-review-area');
+  const isReviewVisible = reviewArea && reviewArea.style.display !== 'none';
+
+  if (!isReviewVisible) {
+    if (currentLabFiles && currentLabFiles.length > 0) {
+      await startBatchAnalysis();
+      return;
+    } else {
+      alert('กรุณาเลือกหรือถ่ายภาพสลิปใบแล็บก่อนนำเข้าข้อมูล');
+      return;
+    }
+  }
+
+  const isMasked = document.getElementById('rev-pdpa-mask')?.checked;
+  const ptName = isMasked ? 'ผู้รับการตรวจ (นิรนาม / Anonymized)' : (document.getElementById('rev-pt-name')?.value.trim() || '');
+  const ptHn = isMasked ? 'HN-******' : (document.getElementById('rev-pt-hn')?.value.trim() || '');
+  
+  const age = document.getElementById('rev-age')?.value;
+  const sex = document.getElementById('rev-sex')?.value;
+  const height = document.getElementById('rev-height')?.value;
+  const weight = document.getElementById('rev-weight')?.value;
+  const waist = document.getElementById('rev-waist')?.value;
+
+  const sbp = document.getElementById('rev-sbp')?.value;
+  const dbp = document.getElementById('rev-dbp')?.value;
+  const hr = document.getElementById('rev-hr')?.value;
+  const homeSbp = document.getElementById('rev-home-sbp')?.value;
+  const homeDbp = document.getElementById('rev-home-dbp')?.value;
+
+  const scr = document.getElementById('rev-scr')?.value;
+  const k = document.getElementById('rev-k')?.value;
+  const uacr = document.getElementById('rev-uacr')?.value;
+  const tc = document.getElementById('rev-tc')?.value;
+  const tg = document.getElementById('rev-tg')?.value;
+  const hdl = document.getElementById('rev-hdl')?.value;
+
+  const dm = document.getElementById('rev-dm')?.value;
+  const smoke = document.getElementById('rev-smoke')?.value;
+  const cad = document.getElementById('rev-cad')?.value;
+  const hf = document.getElementById('rev-hf')?.value;
+  const stroke = document.getElementById('rev-stroke')?.value;
+  const af = document.getElementById('rev-af')?.value;
+
+  function updateField(id, val) {
+    if (val === undefined || val === null || val === '') return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = val;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // 1. Patient Profile
+  updateField('inp-name', ptName);
+  updateField('inp-hn', ptHn);
+  updateField('inp-age', age);
+  if (sex !== undefined && sex !== null && sex !== '') {
+    if (typeof setSex === 'function') {
+      setSex(parseInt(sex, 10));
+    }
+  }
+  updateField('inp-height', height);
+  updateField('inp-weight', weight);
+  updateField('inp-waist', waist);
+
+  // 2. Vitals & BP
+  updateField('inp-sbp', sbp);
+  updateField('inp-dbp', dbp);
+  updateField('inp-hr', hr);
+  updateField('inp-home-sbp', homeSbp);
+  updateField('inp-home-dbp', homeDbp);
+
+  // 3. Laboratory Data
+  updateField('inp-scr', scr);
+  updateField('inp-k', k);
+  updateField('inp-uacr', uacr);
+  updateField('inp-tc', tc);
+  updateField('inp-tg', tg);
+  updateField('inp-hdl', hdl);
+
+  // 4. Comorbidities & Conditions
+  function setCondition(chkId, key, val) {
+    if (val === undefined || val === null || val === '') return;
+    const isChecked = val === '1' || val === 1 || val === true;
+    const chk = document.getElementById(chkId);
+    if (chk) chk.checked = isChecked;
+    if (typeof toggleCondition === 'function') {
+      toggleCondition(key, isChecked);
+    }
+  }
+
+  setCondition('chk-dm', 'dm', dm);
+  setCondition('chk-smoke', 'smoke', smoke);
+  setCondition('chk-cad', 'cad', cad);
+  setCondition('chk-hf', 'hf', hf);
+  setCondition('chk-stroke', 'stroke', stroke);
+  setCondition('chk-af', 'af', af);
+
+  // Trigger state synchronization & calculations
+  if (typeof syncInputsToState === 'function') syncInputsToState();
+  if (typeof updateLipidCalculations === 'function') updateLipidCalculations();
+  if (typeof recalculateAll === 'function') recalculateAll();
+  if (typeof syncPrintSheets === 'function') syncPrintSheets();
+
+  closeLabImportModal();
+
+  const summaryParts = [];
+  if (sbp) summaryParts.push('BP ' + sbp + (dbp ? '/' + dbp : ''));
+  if (tc) summaryParts.push('TC ' + tc);
+  if (tg) summaryParts.push('TG ' + tg);
+  if (hdl) summaryParts.push('HDL ' + hdl);
+  if (scr) summaryParts.push('Cr ' + scr);
+  if (k) summaryParts.push('K+ ' + k);
+
+  showToast('✅ นำเข้าผลตรวจ (' + (summaryParts.join(', ') || 'ข้อมูลครบถ้วน') + ') และคำนวณผลเรียบร้อยแล้ว!');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast-msg');
+  if (!toast) return;
+  toast.innerHTML = `<span>${msg}</span>`;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3500);
+}
+
+// Export functions to window for global inline onclick handlers
+if (typeof window !== 'undefined') {
+  window.openLabImportModal = openLabImportModal;
+  window.closeLabImportModal = closeLabImportModal;
+  window.handleLabImportBackdropClick = handleLabImportBackdropClick;
+  window.triggerFileSelect = triggerFileSelect;
+  window.triggerCameraCapture = triggerCameraCapture;
+  window.handleFileInputChange = handleFileInputChange;
+  window.switchLabEngine = switchLabEngine;
+  window.saveGeminiApiKey = saveGeminiApiKey;
+  window.toggleApiKeyVisibility = toggleApiKeyVisibility;
+  window.resetLabImportState = resetLabImportState;
+  window.purgeLabMemory = purgeLabMemory;
+  window.removeLabFile = removeLabFile;
+  window.clearAllLabFiles = clearAllLabFiles;
+  window.startBatchAnalysis = startBatchAnalysis;
+  window.switchPreviewImage = switchPreviewImage;
+  window.handlePdpaMaskToggle = handlePdpaMaskToggle;
+  window.applyExtractedDataToDashboard = applyExtractedDataToDashboard;
+  window.showToast = showToast;
+}
+
+// --- END lab_import.js ---
 
 // --- BEGIN app.js ---
 /**
