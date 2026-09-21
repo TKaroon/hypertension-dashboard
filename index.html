@@ -9,6 +9,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <!-- PDF.js library for offline client-side PDF laboratory report parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
 </head>
 <body>
 
@@ -38,6 +45,10 @@
             <span>👥 โหมดประชาชน / ผู้ป่วย</span>
           </button>
         </div>
+
+        <button type="button" class="btn-header" id="btn-open-lab-import" onclick="openLabImportModal()" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; border: none; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.28);" title="นำเข้าข้อมูลจากภาพถ่ายสลิปแล็บ หรือไฟล์ PDF แล้วคำนวณผลอัตโนมัติ">
+          <span>📷 / 📄 นำเข้าผลตรวจ (AI &amp; PDF)</span>
+        </button>
 
         <button type="button" class="btn-header" id="btn-open-summary-modal" onclick="openPrintPreviewModal()">
           <span>📋 แสดงผลสรุปข้อมูล</span>
@@ -205,8 +216,11 @@
 
           <!-- 3. Laboratory Data -->
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
               <h3 class="card-title"><span>🧪</span> 3. ผลตรวจทางห้องปฏิบัติการ (Labs)</h3>
+              <button type="button" onclick="openLabImportModal()" style="background:#ede9fe; color:#6d28d9; border:1px solid #c4b5fd; font-size:0.74rem; font-weight:700; padding:4px 10px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s;" title="สแกนผลแล็บจากสลิปภาพถ่ายหรือเอกสาร PDF">
+                <span>📷</span> สแกนสลิปแล็บ / PDF
+              </button>
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -705,6 +719,373 @@
     </div>
 
   </main>
+
+  <!-- =========================================================================
+       MODAL: LAB & DOCUMENT IMPORT (AI Multimodal & Client-Side PDF Parser)
+       ========================================================================= -->
+  <div class="modal-overlay" id="lab-import-modal" onclick="handleLabImportBackdropClick(event)">
+    <div class="lab-import-card">
+      <!-- Header -->
+      <div class="lab-import-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.35rem; line-height: 1;">📷</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em;">
+              นำเข้าข้อมูลผลตรวจจากภาพถ่าย / สลิปแล็บ / เอกสาร PDF (Smart Lab Import)
+            </h3>
+            <div style="font-size: 0.72rem; color: #e0e7ff; font-weight: 500;">
+              สกัดค่าตัวแปรทางคลินิก ความดัน และผลเลือดอัตโนมัติด้วย AI Multimodal หรืออ่าน PDF ในเครื่องโดยตรง
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline" style="padding: 4px 10px; color: #ffffff; border-color: rgba(255,255,255,0.4);" onclick="closeLabImportModal()" title="ปิดหน้าต่าง">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div class="lab-import-body">
+        <!-- PDPA Protection Guarantee Banner -->
+        <div class="lab-pdpa-banner" id="lab-pdpa-banner">
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <span style="font-size: 1.35rem; line-height: 1.2;">🛡️</span>
+            <div>
+              <div style="font-size: 0.82rem; font-weight: 800; color: #065f46; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span>มาตรการคุ้มครองข้อมูลส่วนบุคคล (PDPA Protection Guarantee)</span>
+                <span style="background: #059669; color: #ffffff; font-size: 0.63rem; padding: 1px 7px; border-radius: 9999px; font-weight: 700;">Zero Persistent Storage</span>
+                <span style="background: #10b981; color: #ffffff; font-size: 0.63rem; padding: 1px 7px; border-radius: 9999px; font-weight: 700;">In-Memory Only</span>
+              </div>
+              <div style="font-size: 0.72rem; color: #047857; margin-top: 3px; line-height: 1.4;">
+                • ไม่มีการบันทึกภาพถ่ายสลิปแล็บ หรือข้อมูลอัตลักษณ์ (ชื่อ-สกุล / HN / เลขบัตรประชาชน) ลงใน LocalStorage หรือหน่วยความจำถาวรใดๆ<br>
+                • ไฟล์ภาพจะคงอยู่เฉพาะใน RAM ชั่วคราวของเบราว์เซอร์ และถูกทำลายทิ้งทันทีเมื่อปิดหน้าต่าง นำเข้าข้อมูล หรือกดปุ่มรีเซ็ต
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="purgeLabMemory(true)" title="ล้างรูปภาพและหน่วยความจำชั่วคราวทั้งหมดทันที" style="background: #ffffff; border: 1.5px solid #6ee7b7; color: #065f46; border-radius: 7px; padding: 5px 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <span>🗑️</span> ล้างข้อมูลใน RAM
+          </button>
+        </div>
+
+        <!-- 1. Engine Selector Bar -->
+        <div class="lab-engine-bar">
+          <button type="button" class="lab-engine-btn active" id="btn-engine-gemini" onclick="switchLabEngine('gemini')">
+            <span>✨</span>
+            <span><strong>Gemini AI Multimodal</strong> (แนะนำ - รองรับภาพถ่ายสลิป/กระดาษ/PDF รวมสูงสุด 10 รูป)</span>
+          </button>
+          <button type="button" class="lab-engine-btn" id="btn-engine-pdfjs" onclick="switchLabEngine('pdfjs')">
+            <span>⚡</span>
+            <span><strong>Local PDF Text Parser</strong> (ออฟไลน์ในเครื่อง 100% สำหรับไฟล์ PDF)</span>
+          </button>
+        </div>
+
+        <!-- 2. Gemini API Key Configuration Box (Visible when Gemini Engine selected) -->
+        <div id="lab-gemini-config-box" class="lab-api-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <span style="font-weight: 700; color: #4338ca;">🔑 Google Gemini API Key:</span>
+              <span id="gemini-key-status" style="font-size: 0.74rem; font-weight: 600; margin-left: 6px; color: #b45309;">(ยังไม่ได้บันทึก Key)</span>
+            </div>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #4f46e5; font-weight: 700; text-decoration: underline; font-size: 0.76rem;">
+              รับ Gemini API Key ฟรีจาก Google AI Studio ↗
+            </a>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 6px; align-items: center;">
+            <input type="password" id="gemini-api-key-input" placeholder="วาง API Key ของคุณที่นี่ (เช่น AIzaSy...)" style="flex: 1; padding: 6px 10px; border: 1px solid #c7d2fe; border-radius: 6px; font-size: 0.8rem; font-family: monospace;">
+            <button type="button" onclick="toggleApiKeyVisibility()" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; cursor: pointer;" title="แสดง/ซ่อน Key">👁️</button>
+            <button type="button" onclick="saveGeminiApiKey()" style="background: #4f46e5; color: #ffffff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">บันทึก Key</button>
+          </div>
+          <div style="font-size: 0.7rem; color: #64748b; margin-top: 4px;">
+            🔒 Key จะถูกบันทึกอย่างปลอดภัยใน <em>localStorage</em> ของบราวเซอร์เครื่องนี้เท่านั้น ไม่มีการส่งหรือบันทึกลงเซิร์ฟเวอร์ภายนอกใดๆ
+          </div>
+        </div>
+
+        <!-- 3. Drag & Drop Upload Zone -->
+        <div class="lab-dropzone" id="lab-dropzone" onclick="triggerFileSelect()">
+          <input type="file" id="lab-file-input" accept="image/jpeg,image/png,image/webp,image/bmp,application/pdf" multiple style="display: none;" onchange="handleFileInputChange(event)">
+          <input type="file" id="lab-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handleFileInputChange(event)">
+          
+          <div style="font-size: 2.2rem; line-height: 1;">📄 / 📸</div>
+          <div style="font-size: 0.95rem; font-weight: 800; color: #1e3a8a;">
+            ลากไฟล์ภาพสลิป หรือไฟล์เอกสาร PDF มาวางที่นี่ (รองรับสูงสุด 10 รูป)
+          </div>
+          <div style="font-size: 0.78rem; color: #64748b;">
+            สามารถเลือกหรือทยอยเพิ่มได้สูงสุด 10 ภาพ เช่น สลิปความดัน + สลิปค่าไต + สลิปผลไขมัน
+          </div>
+          <div class="lab-upload-actions" onclick="event.stopPropagation()">
+            <button type="button" class="lab-upload-btn" onclick="triggerFileSelect()">
+              <span>📁</span> เลือกไฟล์จากเครื่อง (สูงสุด 10 รูป)
+            </button>
+            <button type="button" class="lab-upload-btn-secondary" onclick="triggerCameraCapture()">
+              <span>📸</span> ถ่ายภาพด้วยกล้อง
+            </button>
+          </div>
+          <div style="font-size: 0.74rem; color: #4338ca; background: #eef2ff; padding: 4px 10px; border-radius: 6px; border: 1px dashed #c7d2fe; margin-top: 4px;">
+            💡 <strong>Tip สะดวกพิเศษ:</strong> สามารถกด <strong>Ctrl+V</strong> หรือ <strong>Cmd+V</strong> เพื่อวางภาพจาก Clipboard ต่อเนื่องได้สูงสุด 10 ภาพ!
+          </div>
+        </div>
+
+        <!-- Multi-Image Queue & Thumbnail Strip (Up to 10 Images) -->
+        <div id="lab-multi-queue" class="lab-multi-queue" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 0.84rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+              <span>📸 รายการรูปภาพในคิว:</span>
+              <span id="lab-queue-count-badge" style="background: #4f46e5; color: #ffffff; padding: 2px 10px; border-radius: 9999px; font-size: 0.74rem; font-weight: 800;">0 / 10 รูป</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" onclick="triggerFileSelect()" style="background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; border-radius: 6px; padding: 4px 10px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <span>+</span> เพิ่มภาพอีก
+              </button>
+              <button type="button" onclick="clearAllLabFiles()" style="background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 6px; padding: 4px 10px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <span>🗑️</span> ล้างคิวภาพ
+              </button>
+            </div>
+          </div>
+
+          <!-- Thumbnail Strip -->
+          <div id="lab-thumbnail-strip" class="lab-thumbnail-strip"></div>
+
+          <!-- Batch Action Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
+            <div style="font-size: 0.72rem; color: #475569; display: flex; align-items: center; gap: 5px;">
+              <span>💡</span> <span>AI Multimodal จะอ่านและผสานตัวแปรทางคลินิกจากทุกสลิปเป็นโปรไฟล์ผู้ป่วยรายเดียว</span>
+            </div>
+            <button type="button" id="btn-start-batch-analysis" onclick="startBatchAnalysis()" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: #ffffff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 0.84rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 8px rgba(79, 70, 229, 0.35);">
+              <span>✨</span> วิเคราะห์และประเมินผลรวม (<span id="btn-analysis-count">0</span> รูป)
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Loading / Processing State -->
+        <div id="lab-loading-state" class="lab-loading-state">
+          <div class="lab-spinner"></div>
+          <div id="lab-loading-title" style="font-weight: 800; color: #3730a3; font-size: 0.95rem;">
+            กำลังประมวลผลเอกสาร...
+          </div>
+          <div id="lab-loading-desc" style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">
+            ระบบกำลังอ่านผลตรวจทางห้องปฏิบัติการและวิเคราะห์ตัวแปรทางคลินิก กรุณารอสักครู่...
+          </div>
+        </div>
+
+        <!-- 5. Review & Verification Area (Visible after extraction) -->
+        <div id="lab-review-area" style="display: none; flex-direction: column; gap: 14px;">
+          <!-- PDPA Anonymize Switch & Reset Bar -->
+          <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: #3730a3; display: flex; align-items: center; gap: 6px;">
+              <span>🎯 ตรวจสอบและยืนยันข้อมูลเพื่อนำเข้าสู่ Dashboard:</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label style="cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 700; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 10px; border-radius: 6px; font-size: 0.74rem;">
+                <input type="checkbox" id="rev-pdpa-mask" checked onchange="handlePdpaMaskToggle(event)">
+                <span>🔒 โหมดนิรนามตาม PDPA (De-identify PII)</span>
+              </label>
+              <button type="button" onclick="resetLabImportState()" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 0.74rem; font-weight: 700; color: #475569; cursor: pointer;">
+                🔄 สแกนไฟล์ใหม่
+              </button>
+            </div>
+          </div>
+
+          <div class="lab-review-container">
+            <!-- Left: Document Preview Pane -->
+            <div class="lab-preview-pane">
+              <div style="color: #94a3b8; font-size: 0.72rem; font-weight: 700; margin-bottom: 6px; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                <span>👁️ ภาพเอกสารต้นฉบับ</span>
+                <span id="lab-preview-filename" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cbd5e1;"></span>
+              </div>
+              
+              <!-- Multi-Image Switcher Chips -->
+              <div id="lab-preview-chips-container" style="width: 100%; margin-bottom: 6px; display: none;">
+                <div id="lab-preview-chips" class="lab-preview-chips"></div>
+              </div>
+
+              <img id="lab-preview-img" class="lab-preview-img" style="display: none;" alt="Preview">
+              <canvas id="lab-preview-canvas" class="lab-preview-canvas" style="display: none;"></canvas>
+              <div id="lab-preview-fallback" style="display: none; padding: 30px 10px; text-align: center; color: #94a3b8; font-size: 0.78rem;">
+                📄 เอกสาร PDF (สกัดข้อความเรียบร้อย)
+              </div>
+            </div>
+
+            <!-- Right: Extracted Data Form Grid -->
+            <div class="lab-data-pane">
+              <div style="font-size: 0.75rem; color: #059669; font-weight: 700; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 6px;">
+                <span>✅</span> สกัดข้อมูลสำเร็จ กรุณาตรวจสอบหรือปรับแก้ตัวเลขก่อนนำเข้าคำนวณผล (ช่องไฮไลต์เขียว = ตรวจพบจากเอกสาร)
+              </div>
+
+              <!-- Group 1: Patient Demographics & Vitals -->
+              <div>
+                <div class="lab-section-title">
+                  <span>👤</span> 1. ข้อมูลประจำตัวและสัญญาณชีพ (Demographics &amp; Vitals)
+                </div>
+                <div class="lab-field-row">
+                  <div class="lab-field-item">
+                    <label>ชื่อ-สกุล <span id="badge-pt-name" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="text" id="rev-pt-name" placeholder="ชื่อผู้ป่วย">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>HN <span id="badge-pt-hn" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="text" id="rev-pt-hn" placeholder="เลข HN">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>วันที่ตรวจ <span id="badge-date" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="date" id="rev-date">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>อายุ (ปี) <span id="badge-age" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-age" min="18" max="110">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>เพศกำเนิด <span id="badge-sex" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-sex">
+                      <option value="1">ชาย (Male)</option>
+                      <option value="0">หญิง (Female)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="lab-field-row" style="margin-top: 8px;">
+                  <div class="lab-field-item">
+                    <label>ส่วนสูง (cm) <span id="badge-height" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-height" placeholder="เช่น 165">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>น้ำหนัก (kg) <span id="badge-weight" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-weight" placeholder="เช่น 68">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>รอบเอว (นิ้ว) <span id="badge-waist" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-waist" placeholder="เช่น 34" step="0.5">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Office SBP (mmHg) <span id="badge-sbp" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-sbp" placeholder="เช่น 148">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Office DBP (mmHg) <span id="badge-dbp" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-dbp" placeholder="เช่น 92">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Heart Rate (bpm) <span id="badge-hr" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-hr" placeholder="เช่น 78">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Home SBP (mmHg) <span id="badge-home-sbp" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-home-sbp" placeholder="เช่น 132">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Home DBP (mmHg) <span id="badge-home-dbp" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-home-dbp" placeholder="เช่น 82">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group 2: Renal & Lipid Panel -->
+              <div>
+                <div class="lab-section-title" style="color: #0f766e;">
+                  <span>🧪</span> 2. ผลตรวจทางห้องปฏิบัติการ (Labs: Renal &amp; Lipids)
+                </div>
+                <div class="lab-field-row">
+                  <div class="lab-field-item">
+                    <label>Serum Cr (mg/dL) <span id="badge-scr" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-scr" step="0.01" placeholder="เช่น 1.0">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Potassium K+ (mEq/L) <span id="badge-k" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-k" step="0.1" placeholder="เช่น 4.2">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>UACR (mg/g) <span id="badge-uacr" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-uacr" placeholder="เช่น 15">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Total Cholesterol (mg/dL) <span id="badge-tc" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-tc" placeholder="เช่น 210">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Triglyceride (mg/dL) <span id="badge-tg" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-tg" placeholder="เช่น 150">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>HDL-C (mg/dL) <span id="badge-hdl" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-hdl" placeholder="เช่น 48">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>Direct LDL-C (mg/dL) <span id="badge-ldl" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-ldl" placeholder="ถ้ามี (คำนวณอัตโนมัติ)">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>FBS (mg/dL) <span id="badge-fbs" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-fbs" placeholder="เช่น 110">
+                  </div>
+                  <div class="lab-field-item">
+                    <label>HbA1c (%) <span id="badge-hba1c" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <input type="number" id="rev-hba1c" step="0.1" placeholder="เช่น 6.0">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group 3: Comorbidities & Risk Factors -->
+              <div>
+                <div class="lab-section-title" style="color: #6b21a8;">
+                  <span>📋</span> 3. โรคร่วมและปัจจัยเสี่ยง (Comorbidities &amp; Conditions)
+                </div>
+                <div class="lab-field-row">
+                  <div class="lab-field-item">
+                    <label>โรคเบาหวาน (DM) <span id="badge-dm" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-dm">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">เป็นเบาหวาน (Yes)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>สูบบุหรี่ (Smoking) <span id="badge-smoke" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-smoke">
+                      <option value="0">ไม่สูบ (No)</option>
+                      <option value="1">สูบ (Smoker)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>โรคหลอดเลือดหัวใจ (CAD) <span id="badge-cad" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-cad">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">มีประวัติ CAD/MI (Yes)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>หัวใจล้มเหลว (Heart Failure) <span id="badge-hf" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-hf">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">มีภาวะ HF (Yes)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>อัมพฤกษ์/อัมพาต (Stroke) <span id="badge-stroke" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-stroke">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">มีประวัติ Stroke/TIA (Yes)</option>
+                    </select>
+                  </div>
+                  <div class="lab-field-item">
+                    <label>หัวใจเต้นพริ้ว (AF) <span id="badge-af" class="lab-detected-badge" style="display: none;">✓ ตรวจพบ</span></label>
+                    <select id="rev-af">
+                      <option value="0">ไม่เป็น (No)</option>
+                      <option value="1">มีภาวะ AF (Yes)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="lab-import-footer">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="btn btn-outline" onclick="closeLabImportModal()">ปิด (Close)</button>
+          <button type="button" class="btn btn-outline" id="btn-reset-lab-batch" onclick="resetLabImportState()" title="เริ่มเลือกเอกสารใหม่และล้างหน่วยความจำ" style="display: none;">🔄 สแกนชุดใหม่ (Reset)</button>
+        </div>
+        <button type="button" class="lab-btn-apply" id="btn-apply-lab-data" onclick="applyExtractedDataToDashboard()">
+          <span>✅ นำเข้าข้อมูลและคำนวณผลทันที (Apply &amp; Calculate)</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- =========================================================================
        MODAL: EMR / HIS NOTE GENERATOR
@@ -1301,6 +1682,7 @@
   <script src="js/medications.js"></script>
   <script src="js/patient_mode.js"></script>
   <script src="js/emr_generator.js"></script>
+  <script src="js/lab_import.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
