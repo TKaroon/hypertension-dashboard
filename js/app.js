@@ -8,6 +8,7 @@
 const appState = {
   mode: 'clinician', // 'clinician' or 'patient'
   activeGuideline: 'thai', // 'thai', 'aha', 'esc'
+  thaiRiskMode: 'lab', // 'lab' or 'non-lab' (matching lipid-ascvd-dashboard.pages.dev)
   editingMedIndex: -1,
   patient: {
     hn: '',
@@ -87,6 +88,37 @@ function setActiveGuideline(guideKey) {
   });
   recalculateAll();
 }
+
+// --- Thai CV Risk Mode Switcher (Matching lipid-ascvd-dashboard.pages.dev) ---
+function setThaiMode(m) {
+  appState.thaiRiskMode = m;
+  const btnLab = document.getElementById('btn-t-lab');
+  const btnNonLab = document.getElementById('btn-t-nonlab');
+  if (btnLab && btnNonLab) {
+    if (m === 'lab') {
+      btnLab.className = 'active';
+      btnLab.style.background = '#213875';
+      btnLab.style.color = '#fff';
+      btnLab.style.boxShadow = '0 2px 4px rgba(33,56,117,0.25)';
+      btnNonLab.className = '';
+      btnNonLab.style.background = 'transparent';
+      btnNonLab.style.color = '#475569';
+      btnNonLab.style.boxShadow = 'none';
+    } else {
+      btnNonLab.className = 'active';
+      btnNonLab.style.background = '#213875';
+      btnNonLab.style.color = '#fff';
+      btnNonLab.style.boxShadow = '0 2px 4px rgba(33,56,117,0.25)';
+      btnLab.className = '';
+      btnLab.style.background = 'transparent';
+      btnLab.style.color = '#475569';
+      btnLab.style.boxShadow = 'none';
+    }
+  }
+  recalculateAll();
+}
+window.setThaiMode = setThaiMode;
+window.setThaiRiskMode = setThaiMode;
 
 // --- Input Handlers ---
 function setSex(sexVal) {
@@ -707,8 +739,10 @@ function recalculateAll() {
   const targetBP = window.getTargetBP(p);
 
   // 5. Cardiovascular Risk Calculation
-  // Thai CV Risk Score (EGAT)
-  const thaiRisk = window.calculateThaiRisk(p.age, p.sex, p.sbp, p.dm, p.smoking, p.tc, p.waist, p.height, p.tc ? 'lab' : 'non-lab');
+  // Thai CV Risk Score (EGAT) - Supports Lab-based (TC) and Non-lab (Waist) switcher
+  const currentThaiMode = appState.thaiRiskMode || 'lab';
+  const thaiRisk = window.calculateThaiRisk(p.age, p.sex, p.sbp, p.dm, p.smoking, p.tc, p.waist, p.height, currentThaiMode);
+  thaiRisk.mode = currentThaiMode;
 
   // AHA PREVENT 2023/2025 Full Engine
   const preventRisk = window.calculatePreventApiFull(
@@ -816,6 +850,12 @@ function updateDashboardDOM() {
   // Thai CV Risk Score (2 decimal places)
   document.getElementById('lbl-thai-risk-val').innerText = `${thaiRisk.pct.toFixed(2)}%`;
   document.getElementById('lbl-thai-risk-cat').innerText = thaiRisk.categoryLabel + thaiRisk.note;
+  const lblThaiMode = document.getElementById('lbl-thai-risk-mode-desc');
+  if (lblThaiMode) {
+    lblThaiMode.innerText = (currentThaiMode === 'lab')
+      ? `Ramathibodi / EGAT (ใช้ผลเลือด TC: ${p.tc || 200} mg/dL)`
+      : `Ramathibodi / EGAT (ไม่ใช้ผลเลือด: รอบเอว ${p.waist || 34}″ / สูง ${p.height || 165} ซม.)`;
+  }
 
   // AHA PREVENT (Total CVD is Primary, 2 decimal places)
   if (preventRisk) {
@@ -1296,7 +1336,8 @@ function syncPrintSheets() {
   if (prsThaiRiskVal) prsThaiRiskVal.innerText = `${thaiRisk.pct.toFixed(2)}%`;
 
   const prsThaiRiskCat = document.getElementById('prs-thai-risk-cat');
-  if (prsThaiRiskCat) prsThaiRiskCat.innerText = `${thaiRisk.categoryLabel}${thaiRisk.note ? ' ' + thaiRisk.note : ''}`;
+  const thaiModeTag = (appState.thaiRiskMode === 'non-lab') ? '[Non-lab/รอบเอว]' : '[Lab/TC]';
+  if (prsThaiRiskCat) prsThaiRiskCat.innerText = `${thaiRisk.categoryLabel} ${thaiModeTag}${thaiRisk.note ? ' ' + thaiRisk.note : ''}`;
 
   const prsPreventVal = document.getElementById('prs-prevent-val');
   if (prsPreventVal) {

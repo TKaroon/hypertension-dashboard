@@ -516,6 +516,16 @@
               <span class="badge badge-high" id="badge-overall-risk">ความเสี่ยงสูง</span>
             </div>
 
+            <!-- Thai CV Mode Switcher (Matching lipid-ascvd-dashboard.pages.dev) -->
+            <div style="background: #e2e8f0; border-radius: 10px; padding: 4px; display: flex; margin-bottom: 14px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); gap:4px;">
+              <button type="button" id="btn-t-lab" class="active" onclick="setThaiMode('lab')" style="flex: 1; padding: 8px 12px; border: none; background: #213875; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; color: #fff; box-shadow: 0 2px 4px rgba(33,56,117,0.25); transition: all 0.2s;">
+                Thai CV: ใช้ผลเลือด (TC)
+              </button>
+              <button type="button" id="btn-t-nonlab" onclick="setThaiMode('non-lab')" style="flex: 1; padding: 8px 12px; border: none; background: transparent; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; color: #475569; transition: all 0.2s;">
+                Thai CV: ไม่ใช้ผลเลือด (รอบเอว)
+              </button>
+            </div>
+
             <!-- Risk Subcards Grid -->
             <div class="risk-cards-grid">
               <!-- Thai CV Risk (EGAT) -->
@@ -523,7 +533,7 @@
                 <div class="risk-subcard-title">Thai CV Risk Score (10-yr)</div>
                 <div class="risk-subcard-val" id="lbl-thai-risk-val">16.40%</div>
                 <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;" id="lbl-thai-risk-cat">ความเสี่ยงปานกลาง (10–19%)</div>
-                <div style="font-size:0.75rem; color:var(--text-light); margin-top:2px;">Ramathibodi / EGAT Equation</div>
+                <div style="font-size:0.75rem; color:var(--text-light); margin-top:2px;" id="lbl-thai-risk-mode-desc">Ramathibodi / EGAT Equation (ใช้ผลเลือด TC)</div>
               </div>
 
               <!-- AHA PREVENT (2023/2024) -->

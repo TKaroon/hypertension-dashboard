@@ -61,7 +61,8 @@ function generateEMRNote(patient, stagingThai, stagingESC, stagingACC, outOfOffi
   }
   assessment += `\n3. Cardiovascular Risk: ${riskEval.label} (${riskEval.reason})`;
   if (thaiRiskResult && typeof thaiRiskResult.pct === 'number') {
-    assessment += `\n   - Thai CV Risk (EGAT 10-yr): ${thaiRiskResult.pct.toFixed(2)}% (${thaiRiskResult.categoryLabel})`;
+    const thaiModeStr = (thaiRiskResult.mode === 'non-lab') ? 'Non-lab / รอบเอว' : 'Lab-based / TC';
+    assessment += `\n   - Thai CV Risk (EGAT 10-yr, ${thaiModeStr}): ${thaiRiskResult.pct.toFixed(2)}% (${thaiRiskResult.categoryLabel})`;
   }
   if (preventResult && typeof preventResult.cvd === 'number') {
     assessment += `\n   - AHA PREVENT 10-yr: Total CVD ${preventResult.cvd.toFixed(2)}%, ASCVD ${preventResult.ascvd.toFixed(2)}%, HF ${preventResult.hf.toFixed(2)}%`;

@@ -568,6 +568,24 @@ select.form-control {
   background: rgba(30, 58, 138, 0.03);
 }
 
+/* Thai CV Mode Switcher Buttons (Matching lipid-ascvd-dashboard.pages.dev) */
+#btn-t-lab, #btn-t-nonlab {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+#btn-t-lab:hover:not(.active), #btn-t-nonlab:hover:not(.active) {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #1e3a8a !important;
+}
+@media (max-width: 600px) {
+  #btn-t-lab, #btn-t-nonlab {
+    padding: 8px 6px !important;
+    font-size: 0.76rem !important;
+  }
+}
+
 /* Risk Scores Cards Grid */
 .risk-cards-grid {
   display: grid;
@@ -3292,6 +3310,16 @@ select.form-control {
               <span class="badge badge-high" id="badge-overall-risk">ความเสี่ยงสูง</span>
             </div>
 
+            <!-- Thai CV Mode Switcher (Matching lipid-ascvd-dashboard.pages.dev) -->
+            <div style="background: #e2e8f0; border-radius: 10px; padding: 4px; display: flex; margin-bottom: 14px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); gap:4px;">
+              <button type="button" id="btn-t-lab" class="active" onclick="setThaiMode('lab')" style="flex: 1; padding: 8px 12px; border: none; background: #213875; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; color: #fff; box-shadow: 0 2px 4px rgba(33,56,117,0.25); transition: all 0.2s;">
+                Thai CV: ใช้ผลเลือด (TC)
+              </button>
+              <button type="button" id="btn-t-nonlab" onclick="setThaiMode('non-lab')" style="flex: 1; padding: 8px 12px; border: none; background: transparent; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; color: #475569; transition: all 0.2s;">
+                Thai CV: ไม่ใช้ผลเลือด (รอบเอว)
+              </button>
+            </div>
+
             <!-- Risk Subcards Grid -->
             <div class="risk-cards-grid">
               <!-- Thai CV Risk (EGAT) -->
@@ -3299,7 +3327,7 @@ select.form-control {
                 <div class="risk-subcard-title">Thai CV Risk Score (10-yr)</div>
                 <div class="risk-subcard-val" id="lbl-thai-risk-val">16.40%</div>
                 <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;" id="lbl-thai-risk-cat">ความเสี่ยงปานกลาง (10–19%)</div>
-                <div style="font-size:0.75rem; color:var(--text-light); margin-top:2px;">Ramathibodi / EGAT Equation</div>
+                <div style="font-size:0.75rem; color:var(--text-light); margin-top:2px;" id="lbl-thai-risk-mode-desc">Ramathibodi / EGAT Equation (ใช้ผลเลือด TC)</div>
               </div>
 
               <!-- AHA PREVENT (2023/2024) -->
@@ -7415,7 +7443,8 @@ function generateEMRNote(patient, stagingThai, stagingESC, stagingACC, outOfOffi
   }
   assessment += `\n3. Cardiovascular Risk: ${riskEval.label} (${riskEval.reason})`;
   if (thaiRiskResult && typeof thaiRiskResult.pct === 'number') {
-    assessment += `\n   - Thai CV Risk (EGAT 10-yr): ${thaiRiskResult.pct.toFixed(2)}% (${thaiRiskResult.categoryLabel})`;
+    const thaiModeStr = (thaiRiskResult.mode === 'non-lab') ? 'Non-lab / รอบเอว' : 'Lab-based / TC';
+    assessment += `\n   - Thai CV Risk (EGAT 10-yr, ${thaiModeStr}): ${thaiRiskResult.pct.toFixed(2)}% (${thaiRiskResult.categoryLabel})`;
   }
   if (preventResult && typeof preventResult.cvd === 'number') {
     assessment += `\n   - AHA PREVENT 10-yr: Total CVD ${preventResult.cvd.toFixed(2)}%, ASCVD ${preventResult.ascvd.toFixed(2)}%, HF ${preventResult.hf.toFixed(2)}%`;
@@ -8602,6 +8631,7 @@ if (typeof window !== 'undefined') {
 const appState = {
   mode: 'clinician', // 'clinician' or 'patient'
   activeGuideline: 'thai', // 'thai', 'aha', 'esc'
+  thaiRiskMode: 'lab', // 'lab' or 'non-lab' (matching lipid-ascvd-dashboard.pages.dev)
   editingMedIndex: -1,
   patient: {
     hn: '',
@@ -8681,6 +8711,37 @@ function setActiveGuideline(guideKey) {
   });
   recalculateAll();
 }
+
+// --- Thai CV Risk Mode Switcher (Matching lipid-ascvd-dashboard.pages.dev) ---
+function setThaiMode(m) {
+  appState.thaiRiskMode = m;
+  const btnLab = document.getElementById('btn-t-lab');
+  const btnNonLab = document.getElementById('btn-t-nonlab');
+  if (btnLab && btnNonLab) {
+    if (m === 'lab') {
+      btnLab.className = 'active';
+      btnLab.style.background = '#213875';
+      btnLab.style.color = '#fff';
+      btnLab.style.boxShadow = '0 2px 4px rgba(33,56,117,0.25)';
+      btnNonLab.className = '';
+      btnNonLab.style.background = 'transparent';
+      btnNonLab.style.color = '#475569';
+      btnNonLab.style.boxShadow = 'none';
+    } else {
+      btnNonLab.className = 'active';
+      btnNonLab.style.background = '#213875';
+      btnNonLab.style.color = '#fff';
+      btnNonLab.style.boxShadow = '0 2px 4px rgba(33,56,117,0.25)';
+      btnLab.className = '';
+      btnLab.style.background = 'transparent';
+      btnLab.style.color = '#475569';
+      btnLab.style.boxShadow = 'none';
+    }
+  }
+  recalculateAll();
+}
+window.setThaiMode = setThaiMode;
+window.setThaiRiskMode = setThaiMode;
 
 // --- Input Handlers ---
 function setSex(sexVal) {
@@ -9301,8 +9362,10 @@ function recalculateAll() {
   const targetBP = window.getTargetBP(p);
 
   // 5. Cardiovascular Risk Calculation
-  // Thai CV Risk Score (EGAT)
-  const thaiRisk = window.calculateThaiRisk(p.age, p.sex, p.sbp, p.dm, p.smoking, p.tc, p.waist, p.height, p.tc ? 'lab' : 'non-lab');
+  // Thai CV Risk Score (EGAT) - Supports Lab-based (TC) and Non-lab (Waist) switcher
+  const currentThaiMode = appState.thaiRiskMode || 'lab';
+  const thaiRisk = window.calculateThaiRisk(p.age, p.sex, p.sbp, p.dm, p.smoking, p.tc, p.waist, p.height, currentThaiMode);
+  thaiRisk.mode = currentThaiMode;
 
   // AHA PREVENT 2023/2025 Full Engine
   const preventRisk = window.calculatePreventApiFull(
@@ -9410,6 +9473,12 @@ function updateDashboardDOM() {
   // Thai CV Risk Score (2 decimal places)
   document.getElementById('lbl-thai-risk-val').innerText = `${thaiRisk.pct.toFixed(2)}%`;
   document.getElementById('lbl-thai-risk-cat').innerText = thaiRisk.categoryLabel + thaiRisk.note;
+  const lblThaiMode = document.getElementById('lbl-thai-risk-mode-desc');
+  if (lblThaiMode) {
+    lblThaiMode.innerText = (currentThaiMode === 'lab')
+      ? `Ramathibodi / EGAT (ใช้ผลเลือด TC: ${p.tc || 200} mg/dL)`
+      : `Ramathibodi / EGAT (ไม่ใช้ผลเลือด: รอบเอว ${p.waist || 34}″ / สูง ${p.height || 165} ซม.)`;
+  }
 
   // AHA PREVENT (Total CVD is Primary, 2 decimal places)
   if (preventRisk) {
@@ -9890,7 +9959,8 @@ function syncPrintSheets() {
   if (prsThaiRiskVal) prsThaiRiskVal.innerText = `${thaiRisk.pct.toFixed(2)}%`;
 
   const prsThaiRiskCat = document.getElementById('prs-thai-risk-cat');
-  if (prsThaiRiskCat) prsThaiRiskCat.innerText = `${thaiRisk.categoryLabel}${thaiRisk.note ? ' ' + thaiRisk.note : ''}`;
+  const thaiModeTag = (appState.thaiRiskMode === 'non-lab') ? '[Non-lab/รอบเอว]' : '[Lab/TC]';
+  if (prsThaiRiskCat) prsThaiRiskCat.innerText = `${thaiRisk.categoryLabel} ${thaiModeTag}${thaiRisk.note ? ' ' + thaiRisk.note : ''}`;
 
   const prsPreventVal = document.getElementById('prs-prevent-val');
   if (prsPreventVal) {

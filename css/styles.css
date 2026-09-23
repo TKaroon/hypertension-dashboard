@@ -557,6 +557,24 @@ select.form-control {
   background: rgba(30, 58, 138, 0.03);
 }
 
+/* Thai CV Mode Switcher Buttons (Matching lipid-ascvd-dashboard.pages.dev) */
+#btn-t-lab, #btn-t-nonlab {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+#btn-t-lab:hover:not(.active), #btn-t-nonlab:hover:not(.active) {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #1e3a8a !important;
+}
+@media (max-width: 600px) {
+  #btn-t-lab, #btn-t-nonlab {
+    padding: 8px 6px !important;
+    font-size: 0.76rem !important;
+  }
+}
+
 /* Risk Scores Cards Grid */
 .risk-cards-grid {
   display: grid;
