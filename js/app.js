@@ -795,6 +795,8 @@ function updateDashboardDOM() {
   } = appState.lastResults;
 
   const guide = appState.activeGuideline;
+  const p = appState.patient;
+  const currentThaiMode = appState.thaiRiskMode || 'lab';
 
   // Update Guideline Switcher Buttons Active State
   ['thai', 'aha', 'esc'].forEach(k => {
