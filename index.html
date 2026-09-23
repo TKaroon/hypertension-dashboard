@@ -734,7 +734,7 @@
               นำเข้าข้อมูลผลตรวจจากภาพถ่าย / สลิปแล็บ / เอกสาร PDF (Smart Lab Import)
             </h3>
             <div style="font-size: 0.72rem; color: #e0e7ff; font-weight: 500;">
-              สกัดค่าตัวแปรทางคลินิก ความดัน และผลเลือดอัตโนมัติด้วย AI Multimodal หรืออ่าน PDF ในเครื่องโดยตรง
+              สกัดค่าตัวแปรทางคลินิก ความดัน และผลเลือดอัตโนมัติด้วย Gemini AI Multimodal (รองรับภาพถ่ายและ PDF สูงสุด 10 รูป)
             </div>
           </div>
         </div>
@@ -764,16 +764,12 @@
           </button>
         </div>
 
-        <!-- 1. Engine Selector Bar -->
-        <div class="lab-engine-bar">
-          <button type="button" class="lab-engine-btn active" id="btn-engine-gemini" onclick="switchLabEngine('gemini')">
+        <!-- 1. Engine Information Banner -->
+        <div class="lab-engine-bar" style="background: #eef2ff; border-color: #c7d2fe; justify-content: center;">
+          <div style="font-size: 0.84rem; font-weight: 800; color: #3730a3; display: flex; align-items: center; gap: 6px; padding: 6px 12px;">
             <span>✨</span>
-            <span><strong>Gemini AI Multimodal</strong> (แนะนำ - รองรับภาพถ่ายสลิป/กระดาษ/PDF รวมสูงสุด 10 รูป)</span>
-          </button>
-          <button type="button" class="lab-engine-btn" id="btn-engine-pdfjs" onclick="switchLabEngine('pdfjs')">
-            <span>⚡</span>
-            <span><strong>Local PDF Text Parser</strong> (ออฟไลน์ในเครื่อง 100% สำหรับไฟล์ PDF)</span>
-          </button>
+            <span id="btn-engine-gemini"><strong>ขับเคลื่อนด้วย Gemini AI Multimodal</strong> (รองรับภาพถ่ายสลิป/หน้าจอ/เอกสาร PDF รวมสูงสุด 10 รูป)</span>
+          </div>
         </div>
 
         <!-- 2. Gemini API Key Configuration Box (Visible when Gemini Engine selected) -->

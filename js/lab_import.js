@@ -21,7 +21,7 @@ function initLabImport() {
       statusSpan.innerText = '✅ บันทึก Key แล้ว (' + savedKey.substring(0, 6) + '...)';
       statusSpan.style.color = '#15803d';
     } else {
-      statusSpan.innerText = '(ยังไม่ได้ระบุ Key - ใช้ PDF Parser แบบออฟไลน์ได้)';
+      statusSpan.innerText = '(ยังไม่ได้ระบุ Key - กรุณากรอก API Key ด้านล่าง)';
       statusSpan.style.color = '#b45309';
     }
   }
@@ -128,20 +128,9 @@ function handleFileInputChange(e) {
 }
 
 function switchLabEngine(engine) {
-  activeLabEngine = engine;
-  const btnGemini = document.getElementById('btn-engine-gemini');
-  const btnPdfjs = document.getElementById('btn-engine-pdfjs');
+  activeLabEngine = 'gemini';
   const configBox = document.getElementById('lab-gemini-config-box');
-
-  if (engine === 'gemini') {
-    if (btnGemini) btnGemini.classList.add('active');
-    if (btnPdfjs) btnPdfjs.classList.remove('active');
-    if (configBox) configBox.style.display = 'block';
-  } else {
-    if (btnPdfjs) btnPdfjs.classList.add('active');
-    if (btnGemini) btnGemini.classList.remove('active');
-    if (configBox) configBox.style.display = 'none';
-  }
+  if (configBox) configBox.style.display = 'block';
 }
 
 function saveGeminiApiKey() {
@@ -445,153 +434,6 @@ async function findWorkingGeminiModel(apiKey) {
   return 'gemini-3.5-flash-lite';
 }
 
-// Local PDF Text & Layout Extractor
-async function parsePdfLocally(arrayBuffer, file) {
-  if (!window.pdfjsLib) {
-    throw new Error('PDF.js library ยังไม่พร้อมใช้งาน');
-  }
-
-  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let fullText = '';
-
-  const maxPages = Math.min(pdf.numPages, 5);
-  for (let p = 1; p <= maxPages; p++) {
-    const page = await pdf.getPage(p);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items.map(item => item.str).join(' ');
-    fullText += '\n' + pageText;
-  }
-
-  // Render Page 1 to preview canvas
-  try {
-    const page1 = await pdf.getPage(1);
-    const canvas = document.getElementById('lab-preview-canvas');
-    if (canvas) {
-      const viewport = page1.getViewport({ scale: 1.0 });
-      const scale = Math.min(260 / viewport.width, 380 / viewport.height);
-      const scaledViewport = page1.getViewport({ scale: Math.max(scale, 0.4) });
-      canvas.width = scaledViewport.width;
-      canvas.height = scaledViewport.height;
-      const ctx = canvas.getContext('2d');
-      await page1.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-      canvas.style.display = 'block';
-      const img = document.getElementById('lab-preview-img');
-      const fallback = document.getElementById('lab-preview-fallback');
-      if (img) img.style.display = 'none';
-      if (fallback) fallback.style.display = 'none';
-    }
-  } catch (renderErr) {
-    console.warn('Canvas render error:', renderErr);
-    const fallback = document.getElementById('lab-preview-fallback');
-    if (fallback) fallback.style.display = 'block';
-  }
-
-  // Run medical regex extractor
-  const extracted = parseLabText(fullText);
-  renderExtractedDataToReviewForm(extracted, file);
-}
-
-// Medical Regex Dictionary Parser for Thai & English Lab Reports
-function parseLabText(text) {
-  const result = {};
-  if (!text) return result;
-  const clean = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-  // Total Cholesterol
-  const tcMatch = clean.match(/(?:total\s*cholesterol|t[-.]?chol(?:esterol)?|\btc\b|คอเลสเตอรอล|โคเลสเตอรอล|cholesterol)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)/i);
-  if (tcMatch) result.total_cholesterol = parseFloat(tcMatch[1]);
-
-  // Triglyceride
-  const tgMatch = clean.match(/(?:triglycerides?|\btg\b|ไตรกลีเซอไรด์|trig)\s*[:=]?\s*([0-9]{2,4}(?:\.[0-9]+)?)/i);
-  if (tgMatch) result.triglyceride = parseFloat(tgMatch[1]);
-
-  // HDL-C
-  const hdlMatch = clean.match(/(?:hdl[- ]*chol(?:esterol)?|hdl[- ]*c|\bhdl\b|เอชดีแอล)\s*[:=]?\s*([0-9]{1,3}(?:\.[0-9]+)?)/i);
-  if (hdlMatch) result.hdl_c = parseFloat(hdlMatch[1]);
-
-  // LDL-C
-  const ldlMatch = clean.match(/(?:direct\s*ldl(?:[- ]*c)?|ldl[- ]*chol(?:esterol)?|ldl[- ]*c|\bldl\b|แอลดีแอล)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)/i);
-  if (ldlMatch) result.ldl_c = parseFloat(ldlMatch[1]);
-
-  // Serum Creatinine
-  const crMatch = clean.match(/(?:serum\s*creatinine|s\.?cr(?:eatinine)?|creatinine|\bcr\b|ครีเอตินิน)\s*[:=]?\s*([0-9]{1,2}(?:\.[0-9]{1,2})?)/i);
-  if (crMatch) result.serum_creatinine = parseFloat(crMatch[1]);
-
-  // Potassium (K+)
-  const kMatch = clean.match(/(?:serum\s*potassium|potassium|\bk\+?\b|โพแทสเซียม)\s*[:=]?\s*([0-9]{1,2}(?:\.[0-9]{1,2})?)/i);
-  if (kMatch) result.k_level = parseFloat(kMatch[1]);
-
-  // eGFR
-  const egfrMatch = clean.match(/(?:egfr|gfr|ckd[- ]*epi)\s*[:=]?\s*([0-9]{1,3}(?:\.[0-9]+)?)/i);
-  if (egfrMatch) result.egfr = parseFloat(egfrMatch[1]);
-
-  // UACR / Microalbumin
-  const uacrMatch = clean.match(/(?:uacr|urine\s*alb\/cr|microalbumin\/?cr|ไข่ขาวรั่ว)\s*[:=]?\s*([0-9]{1,4}(?:\.[0-9]+)?)/i);
-  if (uacrMatch) result.uacr = parseFloat(uacrMatch[1]);
-
-  // HbA1c
-  const a1cMatch = clean.match(/(?:hba1c|hemoglobin\s*a1c|\ba1c\b|glycated\s*hb|ฮีโมโกลบิน\s*เอวันซี)\s*[:=]?\s*([0-9]{1,2}(?:\.[0-9]+)?)/i);
-  if (a1cMatch) result.hba1c = parseFloat(a1cMatch[1]);
-
-  // FBS / Glucose
-  const fbsMatch = clean.match(/(?:fbs|fasting\s*blood\s*sugar|fasting\s*glucose|glucose)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)/i);
-  if (fbsMatch) {
-    result.fbs = parseFloat(fbsMatch[1]);
-    if (result.fbs >= 126 && result.diabetes === undefined) result.diabetes = true;
-  }
-
-  // Blood Pressure
-  const bpMatch = clean.match(/(?:bp|blood\s*pressure|ความดันโลหิต)\s*[:=]?\s*([0-9]{2,3})\s*[\/\-]\s*([0-9]{2,3})/i);
-  if (bpMatch) {
-    result.sbp = parseInt(bpMatch[1], 10);
-    result.dbp = parseInt(bpMatch[2], 10);
-  }
-
-  // Heart Rate
-  const hrMatch = clean.match(/(?:hr|pulse|heart\s*rate|ชีพจร)\s*[:=]?\s*([0-9]{2,3})/i);
-  if (hrMatch) result.hr = parseInt(hrMatch[1], 10);
-
-  // Age
-  const ageMatch = clean.match(/(?:อายุ|age)\s*[:=]?\s*([0-9]{1,3})\s*(?:ปี|yrs?|years?)?/i);
-  if (ageMatch) result.age = parseInt(ageMatch[1], 10);
-
-  // Sex
-  const sexMatch = clean.match(/(?:เพศ|sex|gender)\s*[:=]?\s*(ชาย|หญิง|male|female|\bm\b|\bf\b)/i);
-  if (sexMatch) {
-    const s = sexMatch[1].toLowerCase();
-    if (s === 'ชาย' || s === 'male' || s === 'm') result.sex = 'male';
-    else if (s === 'หญิง' || s === 'female' || s === 'f') result.sex = 'female';
-  }
-
-  // HN
-  const hnMatch = clean.match(/(?:hn|h\.n\.|เลขประจำตัวผู้ป่วย)\s*[:=]?\s*([A-Za-z0-9\/\-]+)/i);
-  if (hnMatch) result.hn = hnMatch[1].trim();
-
-  // Patient Name
-  const nameMatch = clean.match(/(?:ชื่อ[- ]*สกุล|ชื่อผู้ป่วย|patient\s*name|name)\s*[:=]?\s*([^\n\r,0-9]{3,35})/i);
-  if (nameMatch) result.patient_name = nameMatch[1].trim();
-
-  // Date
-  const dateMatch = clean.match(/(?:วันที่ตรวจ|วันที่|date|collection\s*date)\s*[:=]?\s*([0-9]{1,2}[\/\-.][0-9]{1,2}[\/\-.][0-9]{2,4})/i);
-  if (dateMatch) result.test_date = dateMatch[1].trim();
-
-  // Weight / Height / Waist
-  const wtMatch = clean.match(/(?:bw|body\s*weight|น้ำหนัก|weight)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)\s*(?:kg|กก)?/i);
-  if (wtMatch) result.weight = parseFloat(wtMatch[1]);
-
-  const htMatch = clean.match(/(?:ht|height|ส่วนสูง)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)\s*(?:cm|ซม)?/i);
-  if (htMatch) result.height = parseFloat(htMatch[1]);
-
-  const waistMatch = clean.match(/(?:waist|รอบเอว)\s*[:=]?\s*([0-9]{2,3}(?:\.[0-9]+)?)\s*(?:นิ้ว|inch|in|\"|ซม|cm)?/i);
-  if (waistMatch) {
-    let w = parseFloat(waistMatch[1]);
-    if (w > 50) w = Math.round(w / 2.54); // Convert cm to inches if > 50
-    result.waist = w;
-  }
-
-  return result;
-}
-
 // Compress & encode image for fast upload, accurate OCR, and memory safety
 function compressAndEncodeImage(file, maxDimension = 1600, quality = 0.82) {
   return new Promise((resolve, reject) => {
@@ -693,23 +535,7 @@ async function startBatchAnalysis() {
   }
 
   try {
-    // 1. Local PDF Parser Engine check
-    if (activeLabEngine === 'pdfjs') {
-      const firstPdf = currentLabFiles.find(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
-      if (!firstPdf) {
-        alert('Local PDF Parser รองรับเฉพาะไฟล์เอกสาร PDF เท่านั้น กรุณาสลับไปใช้ Gemini AI Multimodal เพื่ออ่านภาพถ่ายสลิป');
-        resetLabImportState();
-        return;
-      }
-      if (numFiles > 1) {
-        showToast('ℹ️ Local PDF Parser ประมวลผลเอกสาร PDF ไฟล์แรกในคิว');
-      }
-      const buf = await firstPdf.file.arrayBuffer();
-      await parsePdfLocally(buf, firstPdf.file);
-      return;
-    }
-
-    // 2. Gemini AI Multimodal Engine
+    // Gemini AI Multimodal Engine
     const apiKey = (localStorage.getItem('gemini_api_key') || '').trim();
     if (!apiKey) {
       if (loadingState) loadingState.style.display = 'none';
