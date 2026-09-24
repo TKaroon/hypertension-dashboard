@@ -10,9 +10,558 @@ let currentPreviewIndex = 0;
 let currentExtractedData = {};
 let originalUnmaskedData = {};
 
+// ==================== DM PROJECT PARITY: SMART DOCUMENT & LAB AI SCANNER ====================
+let uploadedFilesList = []; // Up to 10 files { name, size, type, dataUrl, base64 }
+let lastExtractedData = null;
+
+function initApiKey() {
+  const saved = localStorage.getItem('dm_master_gemini_api_key') || localStorage.getItem('gemini_api_key') || '';
+  const inp = document.getElementById('input-api-key');
+  if (inp && saved) inp.value = saved;
+  const modalInp = document.getElementById('gemini-api-key-input');
+  if (modalInp && saved) modalInp.value = saved;
+}
+
+function saveApiKey() {
+  const inp = document.getElementById('input-api-key');
+  const key = inp ? inp.value.trim() : (document.getElementById('gemini-api-key-input')?.value.trim() || '');
+  if (key) {
+    localStorage.setItem('dm_master_gemini_api_key', key);
+    localStorage.setItem('gemini_api_key', key);
+    const modalInp = document.getElementById('gemini-api-key-input');
+    if (modalInp) modalInp.value = key;
+  } else {
+    localStorage.removeItem('dm_master_gemini_api_key');
+    localStorage.removeItem('gemini_api_key');
+  }
+}
+
+function clearApiKey() {
+  const inp = document.getElementById('input-api-key');
+  if (inp) inp.value = '';
+  const modalInp = document.getElementById('gemini-api-key-input');
+  if (modalInp) modalInp.value = '';
+  localStorage.removeItem('dm_master_gemini_api_key');
+  localStorage.removeItem('gemini_api_key');
+}
+
+function toggleApiKeyVisibility() {
+  const inp = document.getElementById('input-api-key') || document.getElementById('gemini-api-key-input');
+  const icon = document.getElementById('eye-icon');
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    if (icon) icon.setAttribute('data-lucide', 'eye-off');
+  } else {
+    inp.type = 'password';
+    if (icon) icon.setAttribute('data-lucide', 'eye');
+  }
+  renderIconsSafe();
+}
+
+async function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  const remainingSlots = 10 - uploadedFilesList.length;
+  if (remainingSlots <= 0) {
+    alert('อัปโหลดไฟล์ครบจำนวนสูงสุด 10 ไฟล์แล้ว');
+    return;
+  }
+
+  const filesToAdd = files.slice(0, remainingSlots);
+  if (files.length > remainingSlots) {
+    alert(`สามารถเลือกเพิ่มได้อีกเพียง ${remainingSlots} ไฟล์ (รวมไม่เกิน 10 ไฟล์)`);
+  }
+
+  for (const file of filesToAdd) {
+    try {
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        const pdfRes = await renderPdfPageToJpeg(file);
+        uploadedFilesList.push({
+          name: file.name,
+          size: (file.size / 1024).toFixed(1) + ' KB',
+          type: 'application/pdf',
+          dataUrl: pdfRes.dataUrl,
+          base64: pdfRes.base64
+        });
+      } else {
+        const imgRes = await compressAndEncodeImage(file);
+        uploadedFilesList.push({
+          name: file.name,
+          size: (file.size / 1024).toFixed(1) + ' KB',
+          type: file.type || 'image/jpeg',
+          dataUrl: imgRes.dataUrl,
+          base64: imgRes.base64
+        });
+      }
+    } catch (err) {
+      console.warn('File processing notice for ' + file.name + ':', err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        uploadedFilesList.push({
+          name: file.name,
+          size: (file.size / 1024).toFixed(1) + ' KB',
+          type: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+          dataUrl: event.target.result,
+          base64: event.target.result.split(',')[1]
+        });
+        renderUploadedThumbnails();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  renderUploadedThumbnails();
+  e.target.value = '';
+}
+
+function removeFile(index) {
+  uploadedFilesList.splice(index, 1);
+  renderUploadedThumbnails();
+}
+
+function clearAllUploadedFiles() {
+  uploadedFilesList = [];
+  renderUploadedThumbnails();
+  dismissExtractionReview();
+}
+
+function renderUploadedThumbnails() {
+  const container = document.getElementById('upload-preview-container');
+  const grid = document.getElementById('thumbnails-grid');
+  const countBadge = document.getElementById('file-count-badge');
+
+  if (countBadge) countBadge.innerText = uploadedFilesList.length;
+  if (!container || !grid) return;
+
+  if (uploadedFilesList.length === 0) {
+    container.style.display = 'none';
+    grid.innerHTML = '';
+    return;
+  }
+
+  container.style.display = 'block';
+  grid.innerHTML = '';
+
+  uploadedFilesList.forEach((file, index) => {
+    const item = document.createElement('div');
+    item.className = 'ai-thumb-item';
+
+    let previewHtml = '';
+    if (file.type && file.type.includes('pdf')) {
+      previewHtml = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px; text-align:center;">
+          <i data-lucide="file-text" style="width:24px; height:24px; color:#e11d48;"></i>
+          <span style="font-size:9px; font-weight:700; color:#334155; margin-top:2px;">PDF</span>
+        </div>
+      `;
+    } else {
+      previewHtml = `<img src="${file.dataUrl}" alt="${file.name}">`;
+    }
+
+    item.innerHTML = `
+      ${previewHtml}
+      <button type="button" onclick="removeFile(${index})" class="ai-thumb-del" title="ลบไฟล์นี้">
+        <i data-lucide="x" style="width:12px; height:12px;"></i>
+      </button>
+      <div class="ai-thumb-caption">${file.name}</div>
+    `;
+    grid.appendChild(item);
+  });
+
+  renderIconsSafe();
+}
+
+// AI MULTIMODAL EXTRACTION ENGINE WITH STRICT PDPA COMPLIANCE & DYNAMIC MODEL SELECTION
+async function processDocumentsWithAI() {
+  const apiKey = (document.getElementById('input-api-key')?.value || localStorage.getItem('dm_master_gemini_api_key') || localStorage.getItem('gemini_api_key') || '').trim();
+  if (!apiKey) {
+    alert('กรุณากรอก Google Gemini API Key เพื่อใช้งานระบบอ่านเอกสาร AI Vision (ไม่มีค่าใช้จ่าย)');
+    document.getElementById('input-api-key')?.focus();
+    return;
+  }
+
+  if (uploadedFilesList.length === 0) {
+    alert('กรุณาเลือกไฟล์ภาพถ่ายผลแล็บหรือ PDF อย่างน้อย 1 ไฟล์');
+    return;
+  }
+
+  const progressBox = document.getElementById('scan-progress-box');
+  const progressBar = document.getElementById('scan-progress-bar');
+  const statusText = document.getElementById('scan-status-text');
+  const percentText = document.getElementById('scan-percent-text');
+  const btnScan = document.getElementById('btn-run-ai-scan');
+
+  if (progressBox) progressBox.style.display = 'flex';
+  if (btnScan) {
+    btnScan.disabled = true;
+    btnScan.style.opacity = '0.5';
+  }
+
+  if (progressBar) progressBar.style.width = '20%';
+  if (statusText) statusText.innerText = `เตรียมไฟล์ภาพและเอกสาร ${uploadedFilesList.length} ไฟล์...`;
+  if (percentText) percentText.innerText = '20%';
+
+  try {
+    const parts = [];
+
+    uploadedFilesList.forEach(file => {
+      let mime = file.type;
+      if (!mime || mime === '') {
+        mime = file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
+      }
+      parts.push({
+        inlineData: {
+          mimeType: mime === 'application/pdf' ? 'image/jpeg' : mime,
+          data: file.base64
+        }
+      });
+    });
+
+    const promptText = `
+You are an expert clinical medical laboratory data extraction and hypertension decision-support AI assistant.
+Your task is to analyze the provided ${uploadedFilesList.length} medical document(s), lab slips, or OPD cards belonging to the patient.
+
+CRITICAL PDPA / PRIVACY COMPLIANCE MANDATE:
+- NEVER extract, output, or mention ANY Patient Identifiable Information (PII) such as Patient Name, Citizen ID / National ID Number (13 digits), Hospital Number (HN), Telephone Number, Address, Date of Birth, or Hospital Staff Names.
+- DO NOT INCLUDE ANY PERSONAL IDENTIFIERS. Extract ONLY numerical medical parameters, laboratory readings, and clinical diagnoses.
+
+Extract the following clinical variables from the documents if present:
+1. "age": integer or null (e.g. 56)
+2. "sex": "male" or "female" or null
+3. "weight_kg": number or null
+4. "height_cm": number or null
+5. "waist_inches": number or null (if waist in cm, divide by 2.54)
+6. "sbp": integer or null (Office Systolic BP mmHg)
+7. "dbp": integer or null (Office Diastolic BP mmHg)
+8. "hr": integer or null (Heart Rate / Pulse bpm)
+9. "home_sbp": integer or null (Home SBP mmHg)
+10. "home_dbp": integer or null (Home DBP mmHg)
+11. "serum_cr": number or null (Creatinine in mg/dL. If µmol/L, divide by 88.4)
+12. "potassium_k": number or null (Serum K+ in mEq/L or mmol/L)
+13. "uacr": number or null (Urine Albumin/Creatinine Ratio in mg/g, or microalbumin)
+14. "total_cholesterol": number or null (TC in mg/dL. If mmol/L, multiply by 38.67)
+15. "triglycerides": number or null (TG in mg/dL. If mmol/L, multiply by 88.57)
+16. "hdl": number or null (HDL-C in mg/dL. If mmol/L, multiply by 38.67)
+17. "ldl": number or null (LDL-C in mg/dL)
+18. "fbs": number or null (Fasting Blood Sugar in mg/dL)
+19. "hba1c": number or null (HbA1c in %)
+20. "diabetes": boolean or null (true if diabetes, FBS >= 126, or HbA1c >= 6.5%)
+21. "smoking": boolean or null (true if current smoker)
+22. "cad": boolean or null (true if coronary artery disease, prior MI, angina, PCI, or CABG)
+23. "heart_failure": boolean or null (true if Heart failure, CHF, HFrEF, HFpEF)
+24. "stroke": boolean or null (true if stroke or TIA)
+25. "af": boolean or null (true if atrial fibrillation)
+26. "frailty": boolean or null (true if documented frail, elderly fall risk, bedridden)
+27. "pregnant": boolean or null (true if pregnancy is documented)
+28. "current_medications": {
+      "acei_arb": boolean or null (Enalapril, Lisinopril, Ramipril, Losartan, Telmisartan, Valsartan),
+      "ccb": boolean or null (Amlodipine, Felodipine, Manidipine, Lercanidipine),
+      "diuretic": boolean or null (HCTZ, Indapamide, Chlorthalidone),
+      "beta_blocker": boolean or null (Atenolol, Bisoprolol, Carvedilol, Metoprolol),
+      "mra": boolean or null (Spironolactone, Eplerenone),
+      "statin": boolean or null (Atorvastatin, Simvastatin, Rosuvastatin)
+    },
+29. "detected_summary": brief string summarizing findings in Thai/English strictly without personal names/HNs.
+
+Output MUST be strictly valid JSON format matching this schema without any markdown backticks.
+`;
+
+    parts.push({ text: promptText });
+
+    if (progressBar) progressBar.style.width = '40%';
+    if (statusText) statusText.innerText = 'กำลังตรวจสอบโมเดล Gemini Vision ที่พร้อมใช้งาน...';
+    if (percentText) percentText.innerText = '40%';
+
+    let discoveredModel = 'gemini-3.5-flash-lite';
+    try {
+      discoveredModel = await findWorkingGeminiModel(apiKey);
+    } catch (mErr) {
+      console.warn('Model discovery failed, using fallback:', mErr);
+      if (mErr.message && mErr.message.includes('API Key ไม่ถูกต้อง')) {
+        throw mErr;
+      }
+    }
+
+    const candidateModels = [
+      discoveredModel,
+      'gemini-3.5-flash-lite',
+      'gemini-3.8-flash',
+      'gemini-3.5-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-2.5-flash'
+    ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
+    if (progressBar) progressBar.style.width = '55%';
+    if (statusText) statusText.innerText = `กำลังส่งภาพไปยัง Gemini Vision (${discoveredModel})...`;
+    if (percentText) percentText.innerText = '55%';
+
+    const payload = {
+      contents: [{ role: 'user', parts: parts }],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json"
+      }
+    };
+
+    let lastError = null;
+    let responseJson = null;
+    let usedModel = null;
+
+    for (const model of candidateModels) {
+      try {
+        console.log(`Attempting Gemini Vision OCR with model: ${model}`);
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || `HTTP ${response.status} ${response.statusText}`;
+          console.warn(`Model ${model} failed:`, errMsg);
+          lastError = new Error(`[${model}] ${errMsg}`);
+          continue;
+        }
+
+        const data = await response.json();
+        if (data && data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+          responseJson = data;
+          usedModel = model;
+          console.log(`Successfully extracted data using model: ${model}`);
+          break;
+        }
+      } catch (callErr) {
+        console.warn(`Model ${model} network error:`, callErr);
+        lastError = callErr;
+      }
+    }
+
+    if (!responseJson || !responseJson.candidates || !responseJson.candidates[0]?.content?.parts?.[0]?.text) {
+      let errMsg = lastError ? lastError.message : 'ไม่สามารถประมวลผลด้วย AI ได้ กรุณาตรวจสอบ API Key';
+      if (errMsg.includes('API key not valid') || errMsg.includes('API_KEY_INVALID')) {
+        errMsg = 'API Key ไม่ถูกต้อง กรุณาตรวจสอบ API Key จาก Google AI Studio';
+      } else if (errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota')) {
+        errMsg = 'โควตาการใช้งาน Gemini API ฟรีเต็มชั่วคราว กรุณารอสักครู่แล้วลองใหม่';
+      }
+      throw new Error(errMsg);
+    }
+
+    if (progressBar) progressBar.style.width = '85%';
+    if (statusText) statusText.innerText = `ถอดรหัสผลตรวจสำเร็จ (${usedModel}) และตรวจทาน PDPA...`;
+    if (percentText) percentText.innerText = '85%';
+
+    const rawContent = responseJson.candidates[0].content.parts[0].text;
+    let cleanJsonStr = rawContent.trim();
+    if (cleanJsonStr.startsWith('```json')) {
+      cleanJsonStr = cleanJsonStr.replace(/^```json/, '').replace(/```$/, '').trim();
+    } else if (cleanJsonStr.startsWith('```')) {
+      cleanJsonStr = cleanJsonStr.replace(/^```/, '').replace(/```$/, '').trim();
+    }
+
+    const data = JSON.parse(cleanJsonStr);
+    lastExtractedData = data;
+
+    if (progressBar) progressBar.style.width = '100%';
+    if (statusText) statusText.innerText = 'สกัดข้อมูลสำเร็จเรียบร้อย!';
+    if (percentText) percentText.innerText = '100%';
+
+    setTimeout(() => {
+      if (progressBox) progressBox.style.display = 'none';
+      showExtractionReview(data);
+    }, 600);
+
+  } catch (err) {
+    console.error(err);
+    if (progressBox) progressBox.style.display = 'none';
+    alert('เกิดข้อผิดพลาดในการวิเคราะห์เอกสาร: ' + err.message);
+  } finally {
+    if (btnScan) {
+      btnScan.disabled = false;
+      btnScan.style.opacity = '1';
+    }
+  }
+}
+
+function showExtractionReview(data) {
+  const reviewBox = document.getElementById('extraction-review-box');
+  const previewGrid = document.getElementById('extracted-values-preview');
+  if (!reviewBox || !previewGrid) return;
+  previewGrid.innerHTML = '';
+
+  const items = [
+    { label: 'Office BP', val: (data.sbp && data.dbp) ? `${data.sbp}/${data.dbp} mmHg` : (data.sbp ? `${data.sbp} mmHg` : null), highlight: true },
+    { label: 'Heart Rate', val: data.hr ? `${data.hr} bpm` : null },
+    { label: 'Home BP', val: (data.home_sbp && data.home_dbp) ? `${data.home_sbp}/${data.home_dbp} mmHg` : null },
+    { label: 'Age', val: data.age ? `${data.age} ปี` : null },
+    { label: 'Sex', val: data.sex ? (data.sex === 'female' ? 'หญิง (Female)' : 'ชาย (Male)') : null },
+    { label: 'Serum Cr', val: data.serum_cr ? `${data.serum_cr} mg/dL` : null, highlight: true },
+    { label: 'Serum K+', val: data.potassium_k ? `${data.potassium_k} mEq/L` : null, highlight: true },
+    { label: 'Urine ACR', val: data.uacr ? `${data.uacr} mg/g` : null, highlight: true },
+    { label: 'Total Chol', val: data.total_cholesterol ? `${data.total_cholesterol} mg/dL` : null },
+    { label: 'Triglycerides', val: data.triglycerides ? `${data.triglycerides} mg/dL` : null },
+    { label: 'HDL-C', val: data.hdl ? `${data.hdl} mg/dL` : null },
+    { label: 'LDL-C', val: data.ldl ? `${data.ldl} mg/dL` : null, highlight: true },
+    { label: 'Weight', val: data.weight_kg ? `${data.weight_kg} kg` : null },
+    { label: 'Height', val: data.height_cm ? `${data.height_cm} cm` : null },
+    { label: 'Waist', val: data.waist_inches ? `${data.waist_inches} นิ้ว` : null },
+    { label: 'Diabetes', val: data.diabetes ? 'เป็นเบาหวาน (DM)' : null },
+    { label: 'Smoking', val: data.smoking ? 'สูบบุหรี่ (Smoking)' : null },
+    { label: 'CAD / ASCVD', val: data.cad ? 'มีประวัติโรคหัวใจ (CAD)' : null },
+    { label: 'Heart Failure', val: data.heart_failure ? 'หัวใจล้มเหลว (HF)' : null },
+    { label: 'Stroke', val: data.stroke ? 'หลอดเลือดสมอง (Stroke)' : null },
+    { label: 'AF', val: data.af ? 'หัวใจเต้นพลิ้ว (AF)' : null }
+  ];
+
+  items.forEach(it => {
+    if (it.val !== null && it.val !== undefined) {
+      const div = document.createElement('div');
+      div.className = `ai-review-chip ${it.highlight ? 'highlight' : ''}`;
+      div.innerHTML = `
+        <div class="ai-chip-label">${it.label}</div>
+        <div class="ai-chip-val">${it.val}</div>
+      `;
+      previewGrid.appendChild(div);
+    }
+  });
+
+  if (data.detected_summary) {
+    const sumDiv = document.createElement('div');
+    sumDiv.className = 'ai-summary-chip';
+    sumDiv.innerHTML = `<strong>สรุปข้อมูลที่พบ:</strong> ${data.detected_summary}`;
+    previewGrid.appendChild(sumDiv);
+  }
+
+  reviewBox.style.display = 'block';
+  renderIconsSafe();
+}
+
+function applyExtractedData() {
+  if (!lastExtractedData) return;
+  const d = lastExtractedData;
+
+  function setInp(id, val) {
+    if (val === undefined || val === null || val === '') return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = val;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  if (d.age) setInp('inp-age', d.age);
+  if (d.sex) {
+    const s = d.sex.toString().toLowerCase();
+    if (typeof setSex === 'function') {
+      setSex(s === 'female' || s === '0' ? 0 : 1);
+    }
+  }
+  if (d.height_cm || d.height) setInp('inp-height', d.height_cm || d.height);
+  if (d.weight_kg || d.weight) setInp('inp-weight', d.weight_kg || d.weight);
+
+  let waist = d.waist_inches || d.waist;
+  if (waist && waist > 50) waist = (waist / 2.54).toFixed(1);
+  if (waist) setInp('inp-waist', waist);
+
+  if (d.sbp) setInp('inp-sbp', d.sbp);
+  if (d.dbp) setInp('inp-dbp', d.dbp);
+  if (d.hr) setInp('inp-hr', d.hr);
+  if (d.home_sbp) setInp('inp-home-sbp', d.home_sbp);
+  if (d.home_dbp) setInp('inp-home-dbp', d.home_dbp);
+
+  if (d.serum_cr || d.serum_creatinine) setInp('inp-scr', d.serum_cr || d.serum_creatinine);
+  if (d.potassium_k || d.k_level) setInp('inp-k', d.potassium_k || d.k_level);
+  if (d.uacr) setInp('inp-uacr', d.uacr);
+
+  if (d.total_cholesterol) setInp('inp-tc', Math.round(d.total_cholesterol));
+  if (d.triglycerides || d.triglyceride) setInp('inp-tg', Math.round(d.triglycerides || d.triglyceride));
+  if (d.hdl || d.hdl_c) setInp('inp-hdl', Math.round(d.hdl || d.hdl_c));
+
+  function setCondition(chkId, key, val) {
+    if (val === undefined || val === null || val === '') return;
+    const isChecked = !!val;
+    const chk = document.getElementById(chkId);
+    if (chk) chk.checked = isChecked;
+    if (typeof toggleCondition === 'function') {
+      toggleCondition(key, isChecked);
+    }
+  }
+
+  setCondition('chk-dm', 'dm', d.diabetes);
+  setCondition('chk-smoke', 'smoke', d.smoking);
+  setCondition('chk-cad', 'cad', d.cad);
+  setCondition('chk-hf', 'hf', d.heart_failure);
+  setCondition('chk-stroke', 'stroke', d.stroke);
+  setCondition('chk-af', 'af', d.af);
+  setCondition('chk-frailty', 'frailty', d.frailty);
+  setCondition('chk-pregnant', 'isPregnant', d.pregnant);
+
+  if (d.current_medications && typeof setCurrentMedStatus === 'function') {
+    const meds = d.current_medications;
+    let detectedMeds = [];
+    if (meds.ccb) {
+      detectedMeds.push({ id: 'amlodipine', name: 'Amlodipine', brand: 'Norvasc', dose: '5 mg', freq: 'OD', isSPC: false, classes: ['CCB'] });
+    }
+    if (meds.acei_arb) {
+      detectedMeds.push({ id: 'losartan', name: 'Losartan', brand: 'Cozaar', dose: '50 mg', freq: 'OD', isSPC: false, classes: ['RAS'] });
+    }
+    if (meds.diuretic) {
+      detectedMeds.push({ id: 'hctz', name: 'Hydrochlorothiazide (HCTZ)', brand: 'Generic', dose: '25 mg', freq: 'OD', isSPC: false, classes: ['Diuretic'] });
+    }
+    if (meds.beta_blocker) {
+      detectedMeds.push({ id: 'atenolol', name: 'Atenolol', brand: 'Tenormin', dose: '50 mg', freq: 'OD', isSPC: false, classes: ['BB'] });
+    }
+    if (meds.mra) {
+      detectedMeds.push({ id: 'spironolactone', name: 'Spironolactone', brand: 'Aldactone', dose: '25 mg', freq: 'OD', isSPC: false, classes: ['MRA'] });
+    }
+
+    if (detectedMeds.length > 0 && window.appState) {
+      window.appState.patient.currentMedStatus = 'treated';
+      window.appState.patient.currentMedsList = detectedMeds;
+      setCurrentMedStatus('treated');
+      if (typeof renderCurrentMedsList === 'function') renderCurrentMedsList();
+    }
+  }
+
+  if (typeof syncInputsToState === 'function') syncInputsToState();
+  if (typeof calcLipidPanel === 'function') calcLipidPanel();
+  if (typeof updateLipidCalculations === 'function') updateLipidCalculations();
+  if (typeof recalculateAll === 'function') recalculateAll();
+  if (typeof syncPrintSheets === 'function') syncPrintSheets();
+
+  dismissExtractionReview();
+  showToast('✅ นำเข้าข้อมูลทางห้องปฏิบัติการและสัญญาณชีพเข้าสู่ Dashboard เรียบร้อยแล้ว!');
+}
+
+function dismissExtractionReview() {
+  const reviewBox = document.getElementById('extraction-review-box');
+  if (reviewBox) reviewBox.style.display = 'none';
+}
+
+function focusAiScanner() {
+  const card = document.getElementById('ai-scanner-card');
+  if (card) {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('ai-scanner-pulse-highlight');
+    setTimeout(() => {
+      card.classList.remove('ai-scanner-pulse-highlight');
+    }, 2000);
+  }
+}
+
+function renderIconsSafe() {
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    try { lucide.createIcons(); } catch(e) {}
+  }
+}
+
 function initLabImport() {
-  // Load stored Gemini API Key
-  const savedKey = localStorage.getItem('gemini_api_key') || '';
+  initApiKey();
+
+  // Load stored Gemini API Key for modal
+  const savedKey = localStorage.getItem('dm_master_gemini_api_key') || localStorage.getItem('gemini_api_key') || '';
   const keyInput = document.getElementById('gemini-api-key-input');
   const statusSpan = document.getElementById('gemini-key-status');
   if (keyInput) keyInput.value = savedKey;
@@ -26,33 +575,38 @@ function initLabImport() {
     }
   }
 
-  // Setup drag & drop on dropzone
-  const dropzone = document.getElementById('lab-dropzone');
-  if (dropzone) {
+  // Setup drag & drop on both dropzones
+  ['dropzone', 'lab-dropzone'].forEach(id => {
+    const dz = document.getElementById(id);
+    if (!dz) return;
     ['dragenter', 'dragover'].forEach(eventName => {
-      dropzone.addEventListener(eventName, function(e) {
+      dz.addEventListener(eventName, function(e) {
         e.preventDefault();
         e.stopPropagation();
-        dropzone.classList.add('dragover');
+        dz.classList.add('dragover');
       }, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
-      dropzone.addEventListener(eventName, function(e) {
+      dz.addEventListener(eventName, function(e) {
         e.preventDefault();
         e.stopPropagation();
-        dropzone.classList.remove('dragover');
+        dz.classList.remove('dragover');
       }, false);
     });
 
-    dropzone.addEventListener('drop', function(e) {
+    dz.addEventListener('drop', function(e) {
       const dt = e.dataTransfer;
       const files = dt ? dt.files : null;
       if (files && files.length > 0) {
-        handleIncomingFiles(files);
+        if (id === 'dropzone') {
+          handleFileSelect({ target: { files: files } });
+        } else {
+          handleIncomingFiles(files);
+        }
       }
     }, false);
-  }
+  });
 
   // Global Paste Listener (Ctrl+V / Cmd+V)
   window.addEventListener('paste', function(e) {
@@ -63,14 +617,16 @@ function initLabImport() {
           e.preventDefault();
           const file = item.getAsFile();
           if (file) {
-            openLabImportModal();
-            handleIncomingFiles([file]);
+            handleFileSelect({ target: { files: [file] } });
+            focusAiScanner();
           }
           return;
         }
       }
     }
   });
+
+  renderIconsSafe();
 }
 
 // Initialize on load
@@ -1070,4 +1626,17 @@ if (typeof window !== 'undefined') {
   window.handlePdpaMaskToggle = handlePdpaMaskToggle;
   window.applyExtractedDataToDashboard = applyExtractedDataToDashboard;
   window.showToast = showToast;
+  window.initApiKey = initApiKey;
+  window.saveApiKey = saveApiKey;
+  window.clearApiKey = clearApiKey;
+  window.handleFileSelect = handleFileSelect;
+  window.removeFile = removeFile;
+  window.clearAllUploadedFiles = clearAllUploadedFiles;
+  window.renderUploadedThumbnails = renderUploadedThumbnails;
+  window.processDocumentsWithAI = processDocumentsWithAI;
+  window.showExtractionReview = showExtractionReview;
+  window.applyExtractedData = applyExtractedData;
+  window.dismissExtractionReview = dismissExtractionReview;
+  window.focusAiScanner = focusAiScanner;
+  window.renderIconsSafe = renderIconsSafe;
 }
